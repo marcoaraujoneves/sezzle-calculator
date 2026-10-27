@@ -6,6 +6,8 @@ Calculator full-stack assessment (see `ASSESSMENT.md`). `backend/` is a Go calcu
 
 - After each task, append an entry to `PROMPTS.md` using the format described there. Steering and refinements within a task go in that entry's summary, not a new index.
 
+- After finishing each batch of writes to `frontend/`, run `bun run lint` and `bunx prettier --write src` from `frontend/`, and fix what lint reports before moving on.
+
 ## Backend (`backend/`)
 
 - Go, standard library first; idiomatic and small.

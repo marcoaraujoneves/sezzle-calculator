@@ -12,9 +12,6 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
-  server: {
-    proxy: { "/healthz": "http://localhost:8080" },
-  },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],

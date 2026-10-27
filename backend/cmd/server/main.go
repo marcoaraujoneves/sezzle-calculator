@@ -15,7 +15,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/healthz", calculator.NewHandler())
+	// Set when the SPA runs on another origin, e.g. the Vite dev server.
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	mux.Handle("/healthz", calculator.WithCORS(allowedOrigin, calculator.NewHandler()))
 
 	// The container ships the built SPA next to the binary so a single process serves both.
 	if dir := os.Getenv("STATIC_DIR"); dir != "" {
