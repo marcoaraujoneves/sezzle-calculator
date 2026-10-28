@@ -10,6 +10,7 @@ import {
   formatExpression,
   removeLastDigit,
   selectOperation,
+  toggleSign,
   type CalculatorState,
 } from "./calculator";
 
@@ -23,6 +24,8 @@ describe("countDigits", () => {
     ["123", 3],
     ["1.5", 2],
     ["0.", 1],
+    ["-12.5", 3],
+    ["-", 0],
   ])("counts %j as %i digits", (value, want) => {
     expect(countDigits(value)).toBe(want);
   });
@@ -77,9 +80,32 @@ describe("selectOperation", () => {
   });
 
   it("defaults an empty first input to 0", () => {
-    const state = selectOperation(INITIAL_STATE, "subtraction");
+    const state = selectOperation(INITIAL_STATE, "addition");
     expect(state.first).toBe("0");
-    expect(formatExpression(state)).toBe("0 −");
+    expect(formatExpression(state)).toBe("0 +");
+  });
+
+  it("treats minus on an empty first input as a sign", () => {
+    const state = typeDigits(
+      selectOperation(INITIAL_STATE, "subtraction"),
+      "25",
+    );
+    expect(state).toEqual({ ...INITIAL_STATE, first: "-25" });
+  });
+
+  it("treats minus after a first input as subtraction", () => {
+    const state = selectOperation(
+      typeDigits(INITIAL_STATE, "5"),
+      "subtraction",
+    );
+    expect(state.operation).toBe("subtraction");
+    expect(state.first).toBe("5");
+  });
+
+  it("treats minus after an answer as subtraction", () => {
+    const state = selectOperation(answerState(7), "subtraction");
+    expect(state.operation).toBe("subtraction");
+    expect(state.first).toBe("7");
   });
 
   it("starts the second input with its own digit and decimal allowance", () => {
@@ -119,6 +145,45 @@ describe("after an answer", () => {
       operation: "subtraction",
       answered: false,
     });
+  });
+});
+
+describe("toggleSign", () => {
+  it("negates the first input and back", () => {
+    const negative = toggleSign(typeDigits(INITIAL_STATE, "5"));
+    expect(negative.first).toBe("-5");
+    expect(toggleSign(negative).first).toBe("5");
+  });
+
+  it("starts a negative number from an empty input", () => {
+    const state = typeDigits(toggleSign(INITIAL_STATE), "5");
+    expect(state.first).toBe("-5");
+  });
+
+  it("negates the second input once an operation is selected", () => {
+    const state = toggleSign(
+      typeDigits(
+        selectOperation(typeDigits(INITIAL_STATE, "8"), "addition"),
+        "3",
+      ),
+    );
+    expect(state.first).toBe("8");
+    expect(state.second).toBe("-3");
+  });
+
+  it("does not count the sign toward the digit limit", () => {
+    const state = typeDigits(toggleSign(INITIAL_STATE), "123456789");
+    expect(state.first).toBe("-123456789");
+    expect(canAppendDigit(state)).toBe(false);
+  });
+
+  it("negates an answer and keeps it reusable", () => {
+    const state = toggleSign(answerState(5));
+    expect(state).toEqual(answerState(-5));
+  });
+
+  it("backspace removes a lone sign", () => {
+    expect(removeLastDigit(toggleSign(INITIAL_STATE)).first).toBe("");
   });
 });
 

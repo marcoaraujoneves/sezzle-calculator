@@ -1,5 +1,63 @@
 import { describe, expect, it } from "vitest";
-import { validateBasicCalculation } from "./schemas";
+import {
+  validateAdvancedCalculation,
+  validateBasicCalculation,
+} from "./schemas";
+
+describe("validateAdvancedCalculation", () => {
+  it.each([
+    ["16", 16],
+    ["2.25", 2.25],
+    [".25", 0.25],
+    ["0", 0],
+    ["123456789", 123456789],
+  ])("accepts %j", (input, want) => {
+    expect(
+      validateAdvancedCalculation({
+        operation: "square_root",
+        first_input: input,
+      }),
+    ).toEqual({
+      ok: true,
+      payload: { operation: "square_root", first_input: want },
+    });
+  });
+
+  it.each([
+    ["no operation", null, "4", "Select an operation"],
+    ["unknown operation", "addition", "4", "Select an operation"],
+    ["empty input", "square_root", "", "First input is required"],
+    [
+      "lone decimal point",
+      "square_root",
+      ".",
+      "First input is not a valid number",
+    ],
+    ["lone sign", "square_root", "-", "First input is not a valid number"],
+    [
+      "ten digits",
+      "square_root",
+      "1234567890",
+      "First input must have at most 9 digits",
+    ],
+    [
+      "negative number",
+      "square_root",
+      "-4",
+      "Square root of a negative number is not allowed",
+    ],
+    [
+      "negative decimal",
+      "square_root",
+      "-0.5",
+      "Square root of a negative number is not allowed",
+    ],
+  ])("rejects %s", (_name, operation, first, want) => {
+    expect(
+      validateAdvancedCalculation({ operation, first_input: first }),
+    ).toEqual({ ok: false, error: want });
+  });
+});
 
 describe("validateBasicCalculation", () => {
   it("returns the payload with numeric operands", () => {

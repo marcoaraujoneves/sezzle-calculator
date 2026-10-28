@@ -2,7 +2,7 @@ import { Button } from "@/components/base/Button";
 import type { ButtonVariant } from "@/components/base/Button";
 import { ButtonGrid } from "@/components/base/ButtonGrid";
 import type { Calculator } from "@/hooks/use-calculator";
-import type { Operation } from "@/lib/calculator";
+import type { AdvancedOperation, Operation } from "@/lib/calculator";
 
 interface KeyDefinition {
   id: string;
@@ -17,6 +17,10 @@ const OPERATION_BY_KEY: Partial<Record<string, Operation>> = {
   subtract: "subtraction",
   multiply: "multiplication",
   divide: "division",
+};
+
+const ADVANCED_OPERATION_BY_KEY: Partial<Record<string, AdvancedOperation>> = {
+  sqrt: "square_root",
 };
 
 const KEYS: readonly KeyDefinition[] = [
@@ -45,6 +49,7 @@ const KEYS: readonly KeyDefinition[] = [
   { id: "decimal", label: ".", ariaLabel: "Decimal point", variant: "digit" },
   { id: "power", label: "xʸ", ariaLabel: "Power", variant: "operator" },
 
+  { id: "sign", label: "±", ariaLabel: "Toggle sign", variant: "function" },
   {
     id: "equals",
     label: "=",
@@ -65,6 +70,7 @@ function isDigitKey(key: KeyDefinition): boolean {
 export function Keypad({ calculator }: KeypadProps) {
   function clickHandler(key: KeyDefinition): (() => void) | undefined {
     const operation = OPERATION_BY_KEY[key.id];
+    const advancedOperation = ADVANCED_OPERATION_BY_KEY[key.id];
 
     if (isDigitKey(key)) {
       return () => calculator.onDigit(key.id);
@@ -74,8 +80,16 @@ export function Keypad({ calculator }: KeypadProps) {
       return () => calculator.onOperation(operation);
     }
 
+    if (advancedOperation) {
+      return () => calculator.onAdvancedOperation(advancedOperation);
+    }
+
     if (key.id === "decimal") {
       return calculator.onDecimal;
+    }
+
+    if (key.id === "sign") {
+      return calculator.onToggleSign;
     }
 
     if (key.id === "clear") {

@@ -38,7 +38,7 @@ export function Button({
       className={cn(
         "h-16 rounded-lg text-xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50",
         VARIANT_CLASSES[variant],
-        wide && "col-span-full",
+        wide && "col-span-3",
       )}
     >
       {label}

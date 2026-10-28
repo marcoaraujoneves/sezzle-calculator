@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { MAX_DIGITS, OPERATIONS, countDigits } from "@/lib/calculator";
+import {
+  ADVANCED_OPERATIONS,
+  MAX_DIGITS,
+  OPERATIONS,
+  countDigits,
+} from "@/lib/calculator";
 
 // Signed answers are fed back as inputs, so the sign is accepted but never counted.
 const NUMBER_PATTERN = /^-?(\d+\.?\d*|\.\d+)$/;
@@ -30,15 +35,43 @@ export const basicCalculationSchema = z
 
 export type BasicCalculationPayload = z.output<typeof basicCalculationSchema>;
 
-export type ValidationResult =
-  { ok: true; payload: BasicCalculationPayload } | { ok: false; error: string };
+export const advancedCalculationSchema = z
+  .object({
+    operation: z.enum(ADVANCED_OPERATIONS, { error: "Select an operation" }),
+    first_input: operandSchema("First input"),
+  })
+  .refine(
+    ({ operation, first_input }) =>
+      operation !== "square_root" || first_input >= 0,
+    {
+      message: "Square root of a negative number is not allowed",
+      path: ["first_input"],
+    },
+  );
+
+export type AdvancedCalculationPayload = z.output<
+  typeof advancedCalculationSchema
+>;
+
+export type ValidationResult<T> =
+  { ok: true; payload: T } | { ok: false; error: string };
+
+function firstIssue<T>(parsed: z.ZodSafeParseResult<T>): ValidationResult<T> {
+  if (parsed.success) return { ok: true, payload: parsed.data };
+  return { ok: false, error: parsed.error.issues[0].message };
+}
 
 export function validateBasicCalculation(input: {
   operation: string | null;
   first_input: string;
   second_input: string;
-}): ValidationResult {
-  const parsed = basicCalculationSchema.safeParse(input);
-  if (parsed.success) return { ok: true, payload: parsed.data };
-  return { ok: false, error: parsed.error.issues[0].message };
+}): ValidationResult<BasicCalculationPayload> {
+  return firstIssue(basicCalculationSchema.safeParse(input));
+}
+
+export function validateAdvancedCalculation(input: {
+  operation: string | null;
+  first_input: string;
+}): ValidationResult<AdvancedCalculationPayload> {
+  return firstIssue(advancedCalculationSchema.safeParse(input));
 }

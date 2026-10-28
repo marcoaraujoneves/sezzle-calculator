@@ -41,13 +41,38 @@ func TestWithOperands(t *testing.T) {
 
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
-			middleware.WithOperands(next).ServeHTTP(rec, req)
+			middleware.WithOperands([]string{"first_input", "second_input"}, next).ServeHTTP(rec, req)
 
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d (body %q)", rec.Code, tt.wantStatus, rec.Body.String())
 			}
 			if tt.wantStatus == http.StatusOK && gotBody != tt.body {
 				t.Errorf("next handler body = %q, want %q", gotBody, tt.body)
+			}
+		})
+	}
+}
+
+func TestWithOperandsSingleField(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       string
+		wantStatus int
+	}{
+		{"only the named operand is required", `{"first_input":9}`, http.StatusOK},
+		{"unnamed operand is ignored", `{"first_input":9,"second_input":"x"}`, http.StatusOK},
+		{"missing named operand", `{"second_input":9}`, http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			middleware.WithOperands([]string{"first_input"}, next).ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d (body %q)", rec.Code, tt.wantStatus, rec.Body.String())
 			}
 		})
 	}

@@ -11,9 +11,9 @@ import (
 
 const maxOperandDigits = 9
 
-// WithOperands rejects requests whose JSON body lacks first_input or second_input, or whose
+// WithOperands rejects requests whose JSON body lacks any of the named operand fields, or whose
 // operands have more than 9 digits, so handlers can assume well-formed operands.
-func WithOperands(next http.Handler) http.Handler {
+func WithOperands(names []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -21,7 +21,7 @@ func WithOperands(next http.Handler) http.Handler {
 			return
 		}
 
-		if err := validateOperands(body); err != nil {
+		if err := validateOperands(body, names); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -31,13 +31,13 @@ func WithOperands(next http.Handler) http.Handler {
 	})
 }
 
-func validateOperands(body []byte) error {
+func validateOperands(body []byte, names []string) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(body, &fields); err != nil {
 		return fmt.Errorf("body must be a JSON object")
 	}
 
-	for _, name := range []string{"first_input", "second_input"} {
+	for _, name := range names {
 		raw, ok := fields[name]
 		if !ok {
 			return fmt.Errorf("%s is required", name)

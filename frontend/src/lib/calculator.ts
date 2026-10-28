@@ -9,6 +9,11 @@ export const OPERATIONS = [
 
 export type Operation = (typeof OPERATIONS)[number];
 
+// Advanced operations take a single operand and run as soon as their key is clicked.
+export const ADVANCED_OPERATIONS = ["square_root"] as const;
+
+export type AdvancedOperation = (typeof ADVANCED_OPERATIONS)[number];
+
 export interface CalculatorState {
   first: string;
   second: string;
@@ -53,9 +58,9 @@ function withActiveInput(
     : { ...state, second: value };
 }
 
-// The decimal point is part of the number but not of the backend's digit limit.
+// The sign and decimal point are part of the number but not of the backend's digit limit.
 export function countDigits(value: string): number {
-  return value.replace(".", "").length;
+  return value.replace(/[-.]/g, "").length;
 }
 
 export function canAppendDigit(state: CalculatorState): boolean {
@@ -81,10 +86,29 @@ export function appendDecimal(state: CalculatorState): CalculatorState {
   return withActiveInput(target, `${activeInput(target)}.`);
 }
 
+// Flips the active input in place, answer included, so a result can be negated and reused.
+export function toggleSign(state: CalculatorState): CalculatorState {
+  const value = activeInput(state);
+  return withActiveInput(
+    state,
+    value.startsWith("-") ? value.slice(1) : `-${value}`,
+  );
+}
+
 export function selectOperation(
   state: CalculatorState,
   operation: Operation,
 ): CalculatorState {
+  // Minus on an empty calculator is a sign, since "0 − n" is never what typing "-n" means.
+  if (
+    operation === "subtraction" &&
+    state.operation === null &&
+    state.first === "" &&
+    !state.answered
+  ) {
+    return { ...state, first: "-" };
+  }
+
   // The display already shows 0 while nothing is typed, so the first input must be 0 too.
   return { ...state, first: state.first || "0", operation, answered: false };
 }

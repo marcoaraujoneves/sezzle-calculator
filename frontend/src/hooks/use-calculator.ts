@@ -11,10 +11,16 @@ import {
   formatExpression,
   removeLastDigit,
   selectOperation,
+  toggleSign,
+  type AdvancedOperation,
   type Operation,
 } from "@/lib/calculator";
 import { errorMessage } from "@/lib/errors";
-import { validateBasicCalculation } from "@/lib/schemas";
+import {
+  validateAdvancedCalculation,
+  validateBasicCalculation,
+} from "@/lib/schemas";
+import { calculateAdvanced } from "@/services/advanced-calculations";
 import { calculate } from "@/services/basic-calculations";
 
 export interface Calculator {
@@ -24,7 +30,9 @@ export interface Calculator {
   decimalDisabled: boolean;
   onDigit: (digit: string) => void;
   onDecimal: () => void;
+  onToggleSign: () => void;
   onOperation: (operation: Operation) => void;
+  onAdvancedOperation: (operation: AdvancedOperation) => void;
   onEquals: () => void;
   onClear: () => void;
   onBackspace: () => void;
@@ -32,6 +40,24 @@ export interface Calculator {
 
 export function useCalculator(): Calculator {
   const [state, setState] = useState(INITIAL_STATE);
+
+  async function onAdvancedOperation(operation: AdvancedOperation) {
+    const validation = validateAdvancedCalculation({
+      operation,
+      first_input: state.first,
+    });
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return;
+    }
+
+    try {
+      setState(answerState(await calculateAdvanced(validation.payload)));
+    } catch (error: unknown) {
+      toast.error(errorMessage(error));
+      setState(INITIAL_STATE);
+    }
+  }
 
   async function onEquals() {
     const validation = validateBasicCalculation({
@@ -59,8 +85,10 @@ export function useCalculator(): Calculator {
     decimalDisabled: !canAppendDecimal(state),
     onDigit: (digit) => setState((current) => appendDigit(current, digit)),
     onDecimal: () => setState(appendDecimal),
+    onToggleSign: () => setState(toggleSign),
     onOperation: (operation) =>
       setState((current) => selectOperation(current, operation)),
+    onAdvancedOperation: (operation) => void onAdvancedOperation(operation),
     onEquals: () => void onEquals(),
     onClear: () => setState(INITIAL_STATE),
     onBackspace: () => setState(removeLastDigit),
