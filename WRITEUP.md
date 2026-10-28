@@ -31,3 +31,13 @@ For the steps above, the Go server was already initialized, so handling operatio
 To mimick normal calculators, I chose to clamp the digits size to 9, so this will be part of the validation. We also have some limitations on operating with different types in Go, so we must convert them to have consistent types. The operations themselves were simple, with only division requiring special treatment. I have't clamped the output, and will handle that in the UI.
 
 The next step was integrating the basic operations with React by creating a new service. First, no validations on the client-side, so I got to see errors coming from Go and handle that gracefully. Then, a validation layer was included on the React as well, using Zod.
+
+## Starting with the bonus operations
+
+These will require a different validation for each:
+
+- Square root: Can't accept negative numbers, and only have one operand
+- Exponentiation: Can't accept decimals in the exponent
+- Percentage: Don't have restrictions
+
+I started with the square root to validate the new endpoint, and then extended to the exponentiation, and then percentage.

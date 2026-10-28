@@ -108,6 +108,29 @@ describe("selectOperation", () => {
     expect(state.first).toBe("7");
   });
 
+  it("types a sign into the empty second input when minus follows an operator", () => {
+    const afterOperator = selectOperation(
+      typeDigits(INITIAL_STATE, "2"),
+      "exponentiation",
+    );
+    const state = typeDigits(
+      selectOperation(afterOperator, "subtraction"),
+      "3",
+    );
+    expect(state.operation).toBe("exponentiation");
+    expect(state.second).toBe("-3");
+  });
+
+  it("still replaces the operator with other operations", () => {
+    const afterOperator = selectOperation(
+      typeDigits(INITIAL_STATE, "2"),
+      "addition",
+    );
+    expect(selectOperation(afterOperator, "division").operation).toBe(
+      "division",
+    );
+  });
+
   it("starts the second input with its own digit and decimal allowance", () => {
     const afterFirst = appendDecimal(typeDigits(INITIAL_STATE, "123456789"));
     const state = selectOperation(afterFirst, "division");
@@ -231,6 +254,14 @@ describe("removeLastDigit", () => {
 });
 
 describe("formatExpression", () => {
+  it("shows the exponentiation symbol", () => {
+    const state = selectOperation(
+      typeDigits(INITIAL_STATE, "2"),
+      "exponentiation",
+    );
+    expect(formatExpression(state)).toBe("2 ^");
+  });
+
   it("is empty until an operation is selected", () => {
     expect(formatExpression(typeDigits(INITIAL_STATE, "12"))).toBe("");
   });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  EXPONENTIATION,
   INITIAL_STATE,
   activeInput,
   answerState,
@@ -13,12 +14,13 @@ import {
   selectOperation,
   toggleSign,
   type AdvancedOperation,
-  type Operation,
+  type SelectableOperation,
 } from "@/lib/calculator";
 import { errorMessage } from "@/lib/errors";
 import {
   validateAdvancedCalculation,
   validateBasicCalculation,
+  validateExponentiation,
 } from "@/lib/schemas";
 import { calculateAdvanced } from "@/services/advanced-calculations";
 import { calculate } from "@/services/basic-calculations";
@@ -31,7 +33,7 @@ export interface Calculator {
   onDigit: (digit: string) => void;
   onDecimal: () => void;
   onToggleSign: () => void;
-  onOperation: (operation: Operation) => void;
+  onOperation: (operation: SelectableOperation) => void;
   onAdvancedOperation: (operation: AdvancedOperation) => void;
   onEquals: () => void;
   onClear: () => void;
@@ -51,8 +53,12 @@ export function useCalculator(): Calculator {
       return;
     }
 
+    await runRequest(() => calculateAdvanced(validation.payload));
+  }
+
+  async function runRequest(request: () => Promise<number>) {
     try {
-      setState(answerState(await calculateAdvanced(validation.payload)));
+      setState(answerState(await request()));
     } catch (error: unknown) {
       toast.error(errorMessage(error));
       setState(INITIAL_STATE);
@@ -60,22 +66,28 @@ export function useCalculator(): Calculator {
   }
 
   async function onEquals() {
-    const validation = validateBasicCalculation({
+    const input = {
       operation: state.operation,
       first_input: state.first,
       second_input: state.second,
-    });
+    };
+
+    if (state.operation === EXPONENTIATION) {
+      const validation = validateExponentiation(input);
+      if (!validation.ok) {
+        toast.error(validation.error);
+        return;
+      }
+      await runRequest(() => calculateAdvanced(validation.payload));
+      return;
+    }
+
+    const validation = validateBasicCalculation(input);
     if (!validation.ok) {
       toast.error(validation.error);
       return;
     }
-
-    try {
-      setState(answerState(await calculate(validation.payload)));
-    } catch (error: unknown) {
-      toast.error(errorMessage(error));
-      setState(INITIAL_STATE);
-    }
+    await runRequest(() => calculate(validation.payload));
   }
 
   return {

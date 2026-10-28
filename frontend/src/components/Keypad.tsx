@@ -2,7 +2,7 @@ import { Button } from "@/components/base/Button";
 import type { ButtonVariant } from "@/components/base/Button";
 import { ButtonGrid } from "@/components/base/ButtonGrid";
 import type { Calculator } from "@/hooks/use-calculator";
-import type { AdvancedOperation, Operation } from "@/lib/calculator";
+import type { AdvancedOperation, SelectableOperation } from "@/lib/calculator";
 
 interface KeyDefinition {
   id: string;
@@ -12,11 +12,12 @@ interface KeyDefinition {
   wide?: boolean;
 }
 
-const OPERATION_BY_KEY: Partial<Record<string, Operation>> = {
+const OPERATION_BY_KEY: Partial<Record<string, SelectableOperation>> = {
   add: "addition",
   subtract: "subtraction",
   multiply: "multiplication",
   divide: "division",
+  power: "exponentiation",
 };
 
 const ADVANCED_OPERATION_BY_KEY: Partial<Record<string, AdvancedOperation>> = {

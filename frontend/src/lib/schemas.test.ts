@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   validateAdvancedCalculation,
   validateBasicCalculation,
+  validateExponentiation,
 } from "./schemas";
 
 describe("validateAdvancedCalculation", () => {
@@ -55,6 +56,89 @@ describe("validateAdvancedCalculation", () => {
   ])("rejects %s", (_name, operation, first, want) => {
     expect(
       validateAdvancedCalculation({ operation, first_input: first }),
+    ).toEqual({ ok: false, error: want });
+  });
+});
+
+describe("validateExponentiation", () => {
+  it.each([
+    ["2", "10", 2, 10],
+    ["-3", "2", -3, 2],
+    ["2.5", "2", 2.5, 2],
+    ["2", "-2", 2, -2],
+    ["7", "0", 7, 0],
+    ["5", "2.", 5, 2],
+  ])("accepts %j to the power %j", (first, second, wantFirst, wantSecond) => {
+    expect(
+      validateExponentiation({
+        operation: "exponentiation",
+        first_input: first,
+        second_input: second,
+      }),
+    ).toEqual({
+      ok: true,
+      payload: {
+        operation: "exponentiation",
+        first_input: wantFirst,
+        second_input: wantSecond,
+      },
+    });
+  });
+
+  it.each([
+    ["no operation", null, "2", "3", "Select an operation"],
+    ["another operation", "addition", "2", "3", "Select an operation"],
+    ["empty base", "exponentiation", "", "3", "First input is required"],
+    ["empty exponent", "exponentiation", "2", "", "Second input is required"],
+    [
+      "lone sign as exponent",
+      "exponentiation",
+      "2",
+      "-",
+      "Second input is not a valid number",
+    ],
+    [
+      "ten digit exponent",
+      "exponentiation",
+      "2",
+      "1234567890",
+      "Second input must have at most 9 digits",
+    ],
+    [
+      "decimal exponent",
+      "exponentiation",
+      "2",
+      "1.5",
+      "Exponent must be an integer",
+    ],
+    [
+      "negative decimal exponent",
+      "exponentiation",
+      "2",
+      "-0.5",
+      "Exponent must be an integer",
+    ],
+    [
+      "overflow",
+      "exponentiation",
+      "999999999",
+      "999999999",
+      "Result is too large to be represented",
+    ],
+    [
+      "zero to a negative power",
+      "exponentiation",
+      "0",
+      "-2",
+      "Result is too large to be represented",
+    ],
+  ])("rejects %s", (_name, operation, first, second, want) => {
+    expect(
+      validateExponentiation({
+        operation,
+        first_input: first,
+        second_input: second,
+      }),
     ).toEqual({ ok: false, error: want });
   });
 });

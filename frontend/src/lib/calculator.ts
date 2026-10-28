@@ -14,10 +14,15 @@ export const ADVANCED_OPERATIONS = ["square_root"] as const;
 
 export type AdvancedOperation = (typeof ADVANCED_OPERATIONS)[number];
 
+// Exponentiation is typed like a basic operation but is served by the advanced endpoint.
+export const EXPONENTIATION = "exponentiation";
+
+export type SelectableOperation = Operation | typeof EXPONENTIATION;
+
 export interface CalculatorState {
   first: string;
   second: string;
-  operation: Operation | null;
+  operation: SelectableOperation | null;
   // The first input holds a previous answer, which only an operation may reuse.
   answered: boolean;
 }
@@ -38,11 +43,12 @@ function inputTarget(state: CalculatorState): CalculatorState {
   return state.answered ? INITIAL_STATE : state;
 }
 
-export const OPERATION_SYMBOLS: Record<Operation, string> = {
+export const OPERATION_SYMBOLS: Record<SelectableOperation, string> = {
   addition: "+",
   subtraction: "−",
   multiplication: "×",
   division: "÷",
+  exponentiation: "^",
 };
 
 export function activeInput(state: CalculatorState): string {
@@ -97,7 +103,7 @@ export function toggleSign(state: CalculatorState): CalculatorState {
 
 export function selectOperation(
   state: CalculatorState,
-  operation: Operation,
+  operation: SelectableOperation,
 ): CalculatorState {
   // Minus on an empty calculator is a sign, since "0 − n" is never what typing "-n" means.
   if (
@@ -107,6 +113,15 @@ export function selectOperation(
     !state.answered
   ) {
     return { ...state, first: "-" };
+  }
+
+  // Likewise, minus right after an operator signs the second input instead of replacing the operator.
+  if (
+    operation === "subtraction" &&
+    state.operation !== null &&
+    state.second === ""
+  ) {
+    return { ...state, second: "-" };
   }
 
   // The display already shows 0 while nothing is typed, so the first input must be 0 too.

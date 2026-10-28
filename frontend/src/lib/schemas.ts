@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   ADVANCED_OPERATIONS,
+  EXPONENTIATION,
   MAX_DIGITS,
   OPERATIONS,
   countDigits,
@@ -53,6 +54,28 @@ export type AdvancedCalculationPayload = z.output<
   typeof advancedCalculationSchema
 >;
 
+export const exponentiationSchema = z
+  .object({
+    operation: z.literal(EXPONENTIATION, { error: "Select an operation" }),
+    first_input: operandSchema("First input"),
+    second_input: operandSchema("Second input"),
+  })
+  .refine(({ second_input }) => Number.isInteger(second_input), {
+    message: "Exponent must be an integer",
+    path: ["second_input"],
+  })
+  // Overflow and a zero base with a negative exponent are infinite, which the backend cannot return.
+  .refine(
+    ({ first_input, second_input }) =>
+      Number.isFinite(first_input ** second_input),
+    {
+      message: "Result is too large to be represented",
+      path: ["second_input"],
+    },
+  );
+
+export type ExponentiationPayload = z.output<typeof exponentiationSchema>;
+
 export type ValidationResult<T> =
   { ok: true; payload: T } | { ok: false; error: string };
 
@@ -74,4 +97,12 @@ export function validateAdvancedCalculation(input: {
   first_input: string;
 }): ValidationResult<AdvancedCalculationPayload> {
   return firstIssue(advancedCalculationSchema.safeParse(input));
+}
+
+export function validateExponentiation(input: {
+  operation: string | null;
+  first_input: string;
+  second_input: string;
+}): ValidationResult<ExponentiationPayload> {
+  return firstIssue(exponentiationSchema.safeParse(input));
 }
