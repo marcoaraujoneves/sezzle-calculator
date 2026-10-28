@@ -1,18 +1,18 @@
 package calculator
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"sezzle-calculator/internal/handlers"
+	"sezzle-calculator/internal/middleware"
 )
 
 // NewHandler returns the HTTP handler exposing the calculator service.
 func NewHandler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", healthz)
+	mux.HandleFunc("GET /healthz", handlers.Healthz)
+	mux.HandleFunc("/healthz", handlers.MethodNotAllowed(http.MethodGet))
+	mux.Handle("POST /basic-calculations", middleware.WithOperands(http.HandlerFunc(handlers.BasicCalculations)))
+	mux.HandleFunc("/basic-calculations", handlers.MethodNotAllowed(http.MethodPost))
 	return mux
-}
-
-func healthz(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "not-ok"})
 }

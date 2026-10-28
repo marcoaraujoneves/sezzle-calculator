@@ -1,4 +1,4 @@
-package calculator_test
+package middleware_test
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	calculator "sezzle-calculator"
+	"sezzle-calculator/internal/middleware"
 )
 
 func TestWithCORS(t *testing.T) {
@@ -35,7 +36,7 @@ func TestWithCORS(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 
-			calculator.WithCORS(tt.allowedOrigin, calculator.NewHandler()).ServeHTTP(rec, req)
+			middleware.WithCORS(tt.allowedOrigin, calculator.NewHandler()).ServeHTTP(rec, req)
 
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)

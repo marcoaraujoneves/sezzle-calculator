@@ -6,6 +6,7 @@ import (
 	"os"
 
 	calculator "sezzle-calculator"
+	"sezzle-calculator/internal/middleware"
 )
 
 func main() {
@@ -17,7 +18,9 @@ func main() {
 	mux := http.NewServeMux()
 	// Set when the SPA runs on another origin, e.g. the Vite dev server.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
-	mux.Handle("/healthz", calculator.WithCORS(allowedOrigin, calculator.NewHandler()))
+	api := middleware.WithCORS(allowedOrigin, calculator.NewHandler())
+	mux.Handle("/healthz", api)
+	mux.Handle("/basic-calculations", api)
 
 	// The container ships the built SPA next to the binary so a single process serves both.
 	if dir := os.Getenv("STATIC_DIR"); dir != "" {

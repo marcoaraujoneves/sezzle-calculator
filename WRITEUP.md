@@ -18,3 +18,14 @@ The React UI is straightforward, we only need a grid of buttons, with the displa
 The visuals for now will be minimal, until we finish the functionality.
 
 **Note:** During that step, I noticed the agent used Vite's server proxy, so I took the change to replace it with a direct fetch to the Go server, which would be more suitable for production.
+
+## First operations with Go
+
+For the steps above, the Go server was already initialized, so handling operations will just build on top of that. I chose to create one endpoint for basic operators and other for advanced, just to exercise having multiple paths:
+
+- `POST /basic-calculation` with `{ "operation": "sum", "first_input": 120, "second_input": 12 }`
+- `POST /basic-calculation` with `{ "operation": "subtraction", "first_input": 120, "second_input": 12 }`
+- `POST /basic-calculation` with `{ "operation": "multiplication", "first_input": 120, "second_input": 12 }`
+- `POST /basic-calculation` with `{ "operation": "division", "first_input": 120, "second_input": 12 }`
+
+To mimick normal calculators, I chose to clamp the digits size to 9, so this will be part of the validation. We also have some limitations on operating with different types in Go, so we must convert them to have consistent types.

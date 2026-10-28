@@ -9,6 +9,38 @@ import (
 	calculator "sezzle-calculator"
 )
 
+func TestBasicCalculationsEndpoint(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		body       string
+		wantStatus int
+		wantBody   string
+	}{
+		{"addition", http.MethodPost, `{"operation":"addition","first_input":2,"second_input":3}`, http.StatusOK, `{"result":5}`},
+		{"division", http.MethodPost, `{"operation":"division","first_input":1,"second_input":4}`, http.StatusOK, `{"result":0.25}`},
+		{"division by zero", http.MethodPost, `{"operation":"division","first_input":1,"second_input":0}`, http.StatusBadRequest, `{"error":"division by zero"}`},
+		{"unknown operation", http.MethodPost, `{"operation":"root","first_input":1,"second_input":2}`, http.StatusBadRequest, `{"error":"unknown operation"}`},
+		{"missing operand", http.MethodPost, `{"operation":"addition","first_input":1}`, http.StatusBadRequest, `{"error":"second_input is required"}`},
+		{"get is not allowed", http.MethodGet, ``, http.StatusMethodNotAllowed, `{"error":"method not allowed"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(tt.method, "/basic-calculations", strings.NewReader(tt.body))
+			calculator.NewHandler().ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			if tt.wantBody != "" && strings.TrimSpace(rec.Body.String()) != tt.wantBody {
+				t.Errorf("body = %q, want %q", rec.Body.String(), tt.wantBody)
+			}
+		})
+	}
+}
+
 func TestHealthz(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -17,7 +49,7 @@ func TestHealthz(t *testing.T) {
 		wantBody   string
 	}{
 		{"get returns ok", http.MethodGet, http.StatusOK, `{"status":"ok"}`},
-		{"post is not allowed", http.MethodPost, http.StatusMethodNotAllowed, ""},
+		{"post is not allowed", http.MethodPost, http.StatusMethodNotAllowed, `{"error":"method not allowed"}`},
 	}
 
 	for _, tt := range tests {
