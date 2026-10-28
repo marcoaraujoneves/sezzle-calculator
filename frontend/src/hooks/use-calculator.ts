@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   EXPONENTIATION,
   INITIAL_STATE,
+  PERCENTAGE,
   activeInput,
   answerState,
   appendDecimal,
@@ -21,6 +22,7 @@ import {
   validateAdvancedCalculation,
   validateBasicCalculation,
   validateExponentiation,
+  validatePercentage,
 } from "@/lib/schemas";
 import { calculateAdvanced } from "@/services/advanced-calculations";
 import { calculate } from "@/services/basic-calculations";
@@ -71,6 +73,16 @@ export function useCalculator(): Calculator {
       first_input: state.first,
       second_input: state.second,
     };
+
+    if (state.operation === PERCENTAGE) {
+      const validation = validatePercentage(input);
+      if (!validation.ok) {
+        toast.error(validation.error);
+        return;
+      }
+      await runRequest(() => calculateAdvanced(validation.payload));
+      return;
+    }
 
     if (state.operation === EXPONENTIATION) {
       const validation = validateExponentiation(input);

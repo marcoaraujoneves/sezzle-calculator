@@ -30,6 +30,8 @@ func CalculateAdvanced(operation string, first float64, second *float64) (float6
 		return math.Sqrt(first), nil
 	case "exponentiation":
 		return exponentiate(first, second)
+	case "percentage":
+		return percentage(first, second)
 	default:
 		return 0, ErrUnknownOperation
 	}
@@ -46,6 +48,19 @@ func exponentiate(base float64, exponent *float64) (float64, error) {
 
 	// JSON cannot carry Inf, which overflow and a zero base with a negative exponent produce.
 	result := math.Pow(base, *exponent)
+	if math.IsInf(result, 0) {
+		return 0, ErrResultNotRepresented
+	}
+	return result, nil
+}
+
+// The first input is the rate and the second the base, so "20 % 150" reads as 20% of 150.
+func percentage(rate float64, base *float64) (float64, error) {
+	if base == nil {
+		return 0, ErrSecondInputRequired
+	}
+
+	result := rate / 100 * *base
 	if math.IsInf(result, 0) {
 		return 0, ErrResultNotRepresented
 	}

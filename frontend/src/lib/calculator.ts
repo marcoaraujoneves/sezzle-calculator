@@ -17,7 +17,11 @@ export type AdvancedOperation = (typeof ADVANCED_OPERATIONS)[number];
 // Exponentiation is typed like a basic operation but is served by the advanced endpoint.
 export const EXPONENTIATION = "exponentiation";
 
-export type SelectableOperation = Operation | typeof EXPONENTIATION;
+// Percentage is typed like a basic operation but is served by the advanced endpoint.
+export const PERCENTAGE = "percentage";
+
+export type SelectableOperation =
+  Operation | typeof EXPONENTIATION | typeof PERCENTAGE;
 
 export interface CalculatorState {
   first: string;
@@ -49,6 +53,7 @@ export const OPERATION_SYMBOLS: Record<SelectableOperation, string> = {
   multiplication: "×",
   division: "÷",
   exponentiation: "^",
+  percentage: "%",
 };
 
 export function activeInput(state: CalculatorState): string {

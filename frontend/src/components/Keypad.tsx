@@ -18,6 +18,7 @@ const OPERATION_BY_KEY: Partial<Record<string, SelectableOperation>> = {
   multiply: "multiplication",
   divide: "division",
   power: "exponentiation",
+  percent: "percentage",
 };
 
 const ADVANCED_OPERATION_BY_KEY: Partial<Record<string, AdvancedOperation>> = {

@@ -254,6 +254,14 @@ describe("removeLastDigit", () => {
 });
 
 describe("formatExpression", () => {
+  it("shows the percentage symbol", () => {
+    const state = selectOperation(
+      typeDigits(INITIAL_STATE, "20"),
+      "percentage",
+    );
+    expect(formatExpression(state)).toBe("20 %");
+  });
+
   it("shows the exponentiation symbol", () => {
     const state = selectOperation(
       typeDigits(INITIAL_STATE, "2"),

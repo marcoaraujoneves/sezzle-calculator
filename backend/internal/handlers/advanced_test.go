@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"sezzle-calculator/internal/handlers"
@@ -10,6 +11,7 @@ import (
 func TestCalculateAdvanced(t *testing.T) {
 	two, zero, negTwo, half := 2.0, 0.0, -2.0, 0.5
 	huge := 1000.0
+	oneFifty, eighty := 150.0, 80.0
 
 	tests := []struct {
 		name      string
@@ -34,6 +36,14 @@ func TestCalculateAdvanced(t *testing.T) {
 		{"power without an exponent", "exponentiation", 4, nil, 0, handlers.ErrSecondInputRequired},
 		{"power overflowing", "exponentiation", 10, &huge, 0, handlers.ErrResultNotRepresented},
 		{"zero to a negative power", "exponentiation", 0, &negTwo, 0, handlers.ErrResultNotRepresented},
+		{"percentage of a number", "percentage", 20, &oneFifty, 30, nil},
+		{"percentage with a decimal rate", "percentage", 12.5, &eighty, 10, nil},
+		{"percentage above one hundred", "percentage", 150, &eighty, 120, nil},
+		{"negative percentage", "percentage", -10, &eighty, -8, nil},
+		{"percentage of a negative number", "percentage", 10, &negTwo, -0.2, nil},
+		{"percentage of zero", "percentage", 50, &zero, 0, nil},
+		{"percentage without a base", "percentage", 20, nil, 0, handlers.ErrSecondInputRequired},
+		{"percentage overflowing", "percentage", math.MaxFloat64, &huge, 0, handlers.ErrResultNotRepresented},
 		{"unknown operation", "cube_root", 8, nil, 0, handlers.ErrUnknownOperation},
 		{"empty operation", "", 8, nil, 0, handlers.ErrUnknownOperation},
 	}

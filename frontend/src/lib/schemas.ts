@@ -4,6 +4,7 @@ import {
   EXPONENTIATION,
   MAX_DIGITS,
   OPERATIONS,
+  PERCENTAGE,
   countDigits,
 } from "@/lib/calculator";
 
@@ -76,6 +77,14 @@ export const exponentiationSchema = z
 
 export type ExponentiationPayload = z.output<typeof exponentiationSchema>;
 
+export const percentageSchema = z.object({
+  operation: z.literal(PERCENTAGE, { error: "Select an operation" }),
+  first_input: operandSchema("First input"),
+  second_input: operandSchema("Second input"),
+});
+
+export type PercentagePayload = z.output<typeof percentageSchema>;
+
 export type ValidationResult<T> =
   { ok: true; payload: T } | { ok: false; error: string };
 
@@ -105,4 +114,12 @@ export function validateExponentiation(input: {
   second_input: string;
 }): ValidationResult<ExponentiationPayload> {
   return firstIssue(exponentiationSchema.safeParse(input));
+}
+
+export function validatePercentage(input: {
+  operation: string | null;
+  first_input: string;
+  second_input: string;
+}): ValidationResult<PercentagePayload> {
+  return firstIssue(percentageSchema.safeParse(input));
 }

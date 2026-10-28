@@ -3,6 +3,7 @@ import {
   validateAdvancedCalculation,
   validateBasicCalculation,
   validateExponentiation,
+  validatePercentage,
 } from "./schemas";
 
 describe("validateAdvancedCalculation", () => {
@@ -135,6 +136,68 @@ describe("validateExponentiation", () => {
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(
       validateExponentiation({
+        operation,
+        first_input: first,
+        second_input: second,
+      }),
+    ).toEqual({ ok: false, error: want });
+  });
+});
+
+describe("validatePercentage", () => {
+  it.each([
+    ["20", "150", 20, 150],
+    ["12.5", "80", 12.5, 80],
+    ["-10", "80", -10, 80],
+    ["150", "-2", 150, -2],
+    ["0", "0", 0, 0],
+    ["5", "2.", 5, 2],
+  ])("accepts %j percent of %j", (first, second, wantFirst, wantSecond) => {
+    expect(
+      validatePercentage({
+        operation: "percentage",
+        first_input: first,
+        second_input: second,
+      }),
+    ).toEqual({
+      ok: true,
+      payload: {
+        operation: "percentage",
+        first_input: wantFirst,
+        second_input: wantSecond,
+      },
+    });
+  });
+
+  it.each([
+    ["no operation", null, "20", "150", "Select an operation"],
+    ["another operation", "addition", "20", "150", "Select an operation"],
+    ["empty rate", "percentage", "", "150", "First input is required"],
+    ["empty base", "percentage", "20", "", "Second input is required"],
+    [
+      "lone decimal point as base",
+      "percentage",
+      "20",
+      ".",
+      "Second input is not a valid number",
+    ],
+    [
+      "ten digit rate",
+      "percentage",
+      "1234567890",
+      "150",
+      "First input must have at most 9 digits",
+    ],
+    [
+      "ten digit base",
+      "percentage",
+      "20",
+      "1234567890",
+      "Second input must have at most 9 digits",
+    ],
+  ])("rejects %s", (_name, operation, first, second, want) => {
+    expect(
+      validatePercentage({
         operation,
         first_input: first,
         second_input: second,
