@@ -234,3 +234,15 @@ Lets improve the error messages in the toaster, Including case and making them m
 > Errors: the backend messages are API-facing (and asserted by its tests), so the wording people see is decided in the SPA. `constants/error-messages.ts` maps each backend message to a sentence ("Can't divide by zero.", "The exponent must be a whole number.", ...), `friendlyErrorMessage` in `lib/errors.ts` applies it, answers a rejected `fetch` (a `TypeError`) with a connection message, maps the operand errors to "Enter a valid number." and hides every other technical message (`internal error`, `responded with 502`, ...) behind "Something went wrong. Please try again." The hook toasts that instead of the raw message. Client-side validation messages were reworded the same way and are sentence-cased with a full stop ("Select an operation first.", "Enter the first number.", "Enter a valid second number."), which meant updating the expectations of the schema and lib tests. Lint, prettier, `tsc -b` and the 428 tests pass.
 >
 > README: new root `README.md` with the WRITEUP.md and PROMPTS.md links and the live URL (Render, re-deployed after each commit) at the top, then features, layout, running with Docker and locally (including `CORS_ALLOWED_ORIGIN` for the Vite dev server), configuration variables, tests with the backend coverage report, the API with curl examples whose responses were captured from the running server, the error table and the design decisions, following the README items of ASSESSMENT.md. The frontend has no coverage tooling installed, so the README only documents the backend coverage report. Steering: the request was interrupted several times; edits used the Edit/Write tools only.
+
+## PROMPT #15 - Coverage reports
+
+**Developer:**
+
+I want to add a coverage report as well. Run it so I can see the HTML
+
+Setup the frontend coverage report, run it, and include a block in README with the values for each end
+
+**Agent:**
+
+> Backend: ran `go test -race -coverprofile` and `go tool cover -html`; total 84.1% (`cmd/server` has no tests, `internal/handlers` 84.8%). Frontend: added `@vitest/coverage-v8` (pinned to the Vitest version), a `coverage` block in `vite.config.ts` (v8 provider, text and html reporters, scope `src/lib` and `src/schemas` because Vitest only unit-tests functions, excluding the shadcn `lib/utils.ts`) and a `test:coverage` script. Result: 100% statements, branches, functions and lines. Added `coverage` and `coverage.out` to the frontend and backend `.gitignore`, and a Coverage table to the README Tests section. Lint (one existing warning in `ui/button.tsx`) and prettier pass.

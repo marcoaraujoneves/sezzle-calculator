@@ -15,5 +15,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/lib/**", "src/schemas/**"],
+      exclude: ["src/**/*.test.ts", "src/lib/utils.ts"],
+      reporter: ["text", "html"],
+    },
   },
 });

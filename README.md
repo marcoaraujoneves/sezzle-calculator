@@ -77,10 +77,20 @@ cd backend
 go test -race -cover ./...
 go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
 
-# Frontend
+# Frontend, with the coverage report (HTML at frontend/coverage/index.html)
 cd frontend
 bun run test
+bun run test:coverage
 ```
+
+### Coverage
+
+| Side     | Statements | Branches | Functions | Scope                                                            |
+| -------- | ---------- | -------- | --------- | ---------------------------------------------------------------- |
+| Backend  | 84.1%      | n/a      | n/a       | All packages; `cmd/server` (the `main` wiring) has no tests      |
+| Frontend | 100%       | 100%     | 100%      | `src/lib` and `src/schemas`, the only code unit-tested by design |
+
+The frontend scope excludes components, hooks and services because Vitest is used for functions only, and `lib/utils.ts`, the shadcn `cn` helper.
 
 Other checks: `gofmt -l .` and `go vet ./...` in `backend/`; `bun run lint` and `bunx tsc -b` in `frontend/`.
 
