@@ -8,6 +8,7 @@ import {
   canAppendDigit,
   countDigits,
   formatExpression,
+  formatNumber,
   removeLastDigit,
   selectOperation,
   toggleSign,
@@ -253,7 +254,61 @@ describe("removeLastDigit", () => {
   });
 });
 
+describe("formatNumber", () => {
+  it.each([
+    ["", ""],
+    ["-", "-"],
+    ["2.", "2."],
+    ["0.50", "0.50"],
+    ["123456789", "123456789"],
+    ["-12.5", "-12.5"],
+  ])("leaves %j as typed", (raw, want) => {
+    expect(formatNumber(raw)).toBe(want);
+  });
+
+  it.each([
+    ["10000000000", "10 × 10^9"],
+    ["-10000000000", "-10 × 10^9"],
+    ["1000000000", "1 × 10^9"],
+    ["123456789012", "123.456 × 10^9"],
+    ["12345678901234", "12.345 × 10^12"],
+    ["12000000000000", "12 × 10^12"],
+    ["12000900000000", "12 × 10^12"],
+    ["1e+21", "1 × 10^21"],
+    ["1.5e+300", "1.5 × 10^300"],
+  ])("writes the large answer %j in scientific notation", (raw, want) => {
+    expect(formatNumber(raw)).toBe(want);
+  });
+
+  it.each([
+    ["9.12345678912", "9.12345678"],
+    ["-9.12345678912", "-9.12345678"],
+    ["123456789.987", "123456789"],
+    ["12345.6789123", "12345.6789"],
+    ["0.30000000000000004", "0.3"],
+    ["1.00000000012", "1"],
+    ["0.000012345678912", "0.00001234"],
+    ["1e-7", "0.0000001"],
+  ])("truncates the long answer %j to %j", (raw, want) => {
+    expect(formatNumber(raw)).toBe(want);
+  });
+
+  it.each([
+    ["1e-12", "1 × 10^-12"],
+    ["1.5e-10", "150 × 10^-12"],
+    ["0.0000000001234", "123.4 × 10^-12"],
+    ["0.00000000012345678", "123.456 × 10^-12"],
+  ])("keeps the tiny answer %j in scientific notation", (raw, want) => {
+    expect(formatNumber(raw)).toBe(want);
+  });
+});
+
 describe("formatExpression", () => {
+  it("shortens a long answer used as the first input", () => {
+    const state = selectOperation(answerState(10000000000), "addition");
+    expect(formatExpression(state)).toBe("10 × 10^9 +");
+  });
+
   it("shows the percentage symbol", () => {
     const state = selectOperation(
       typeDigits(INITIAL_STATE, "20"),

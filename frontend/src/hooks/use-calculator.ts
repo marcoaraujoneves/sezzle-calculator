@@ -11,6 +11,7 @@ import {
   canAppendDecimal,
   canAppendDigit,
   formatExpression,
+  formatNumber,
   removeLastDigit,
   selectOperation,
   toggleSign,
@@ -104,7 +105,7 @@ export function useCalculator(): Calculator {
 
   return {
     expression: formatExpression(state),
-    value: activeInput(state) || "0",
+    value: formatNumber(activeInput(state)) || "0",
     digitsDisabled: !canAppendDigit(state),
     decimalDisabled: !canAppendDecimal(state),
     onDigit: (digit) => setState((current) => appendDigit(current, digit)),
