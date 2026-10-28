@@ -15,6 +15,10 @@ export function isKeyDisabled(
   key: KeyDefinition,
   calculator: Calculator,
 ): boolean {
+  if (calculator.isLoading) {
+    return true;
+  }
+
   if (isDigitKey(key)) {
     return calculator.digitsDisabled;
   }

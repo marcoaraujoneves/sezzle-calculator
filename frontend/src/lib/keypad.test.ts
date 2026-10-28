@@ -8,6 +8,7 @@ function createCalculator(overrides: Partial<Calculator> = {}): Calculator {
   return {
     expression: "",
     value: "0",
+    isLoading: false,
     digitsDisabled: false,
     decimalDisabled: false,
     onDigit: vi.fn(),
@@ -72,6 +73,12 @@ describe("isKeyDisabled", () => {
       isKeyDisabled(decimal, createCalculator({ decimalDisabled: true })),
     ).toBe(true);
     expect(isKeyDisabled(decimal, createCalculator())).toBe(false);
+  });
+
+  it("disables every key while a calculation is loading", () => {
+    const calculator = createCalculator({ isLoading: true });
+
+    expect(KEYS.every((key) => isKeyDisabled(key, calculator))).toBe(true);
   });
 
   it("keeps the decimal enabled when only digits are blocked", () => {

@@ -14,6 +14,7 @@ export interface CalculatorState {
 export interface Calculator {
   expression: string;
   value: string;
+  isLoading: boolean;
   digitsDisabled: boolean;
   decimalDisabled: boolean;
   onDigit: (digit: string) => void;

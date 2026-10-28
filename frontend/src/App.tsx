@@ -3,9 +3,12 @@ import { Display } from "@/components/base/Display";
 import { Keypad } from "@/components/Keypad";
 import { Toaster } from "@/components/ui/sonner";
 import { useCalculator } from "@/hooks/use-calculator";
+import { useKeyboard } from "@/hooks/use-keyboard";
 
 function App() {
   const calculator = useCalculator();
+
+  useKeyboard(calculator);
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-ink bg-page-backdrop bg-size-[100%_100%,110px_110px,110px_110px] bg-position-[center_top] xs:p-6">
@@ -24,7 +27,8 @@ function App() {
           <Display
             expression={calculator.expression}
             value={calculator.value}
-            announcement=""
+            announcement={calculator.isLoading ? "Calculating" : ""}
+            isLoading={calculator.isLoading}
           />
           <Keypad calculator={calculator} />
         </main>

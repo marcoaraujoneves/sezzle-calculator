@@ -53,3 +53,9 @@ After completing this step for the frontend, I found a bug regarding the first p
 The backend refacor involved, besides code quality, a hardening around the type constraints for the range of representable numbers.
 
 I decided to refactor on the limits of digits to prevent quickly reaching a blocked UX, since the backend and JSON payloads can handle larger inputs.
+
+I believe this is enough for the size and scope of this project. In a real setup, the hardening would also involve security, authorization, backend validation of database schemas, integration tests and e2e tests with Playwright. Also, enhancing logging for proper debugging in production would be necessary, integrating with tools like Sentry for instrumentation and observability.
+
+## Final adjustments
+
+In the end, I performed some adjustments to the Dockerfile and tested the system through the generated image, and applied some visal enhancements. Also, I decided to serve the image through Render and make it accessible through a subdomain on my website, creating a public URL for validation, and while testing it I noticed that when there's a larger delay, the lack of a loading state in the UI hurts UX, so I fixed that, and took the chance to implement keyboard/numpad support.

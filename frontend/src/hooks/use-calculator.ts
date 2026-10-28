@@ -28,8 +28,11 @@ import type { ValidationResult } from "@/types/validation";
 
 export function useCalculator(): Calculator {
   const [state, setState] = useState(INITIAL_STATE);
+  const [isLoading, setIsLoading] = useState(false);
 
   async function runRequest(request: () => Promise<number>) {
+    setIsLoading(true);
+
     try {
       const result = await request();
 
@@ -37,6 +40,8 @@ export function useCalculator(): Calculator {
     } catch (error: unknown) {
       toast.error(errorMessage(error));
       setState(INITIAL_STATE);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -75,6 +80,7 @@ export function useCalculator(): Calculator {
   return {
     expression: formatExpression(state),
     value: formatNumber(activeInput(state)) || "0",
+    isLoading,
     digitsDisabled: !canAppendDigit(state),
     decimalDisabled: !canAppendDecimal(state),
     onDigit: (digit) => setState((current) => appendDigit(current, digit)),
