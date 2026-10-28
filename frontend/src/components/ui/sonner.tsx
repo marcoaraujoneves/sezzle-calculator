@@ -1,4 +1,3 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CircleCheckIcon,
@@ -7,34 +6,22 @@ import {
   OctagonXIcon,
   Loader2Icon,
 } from "lucide-react";
+import { TOAST_CLASS_NAMES, TOAST_STYLE } from "@/constants/toast";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="dark"
       className="toaster group"
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="size-5 text-mint" />,
+        info: <InfoIcon className="size-5 text-lavender" />,
+        warning: <TriangleAlertIcon className="size-5 text-amber-300" />,
+        error: <OctagonXIcon className="size-5 text-[#ff6b81]" />,
+        loading: <Loader2Icon className="size-5 animate-spin" />,
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
-      toastOptions={{
-        classNames: {
-          toast: "cn-toast",
-        },
-      }}
+      style={TOAST_STYLE}
+      toastOptions={{ classNames: TOAST_CLASS_NAMES }}
       {...props}
     />
   );

@@ -8,7 +8,7 @@ export interface ButtonGridProps {
 
 export function ButtonGrid({ label, children }: ButtonGridProps) {
   return (
-    <div role="group" aria-label={label} className="grid grid-cols-4 gap-2">
+    <div role="group" aria-label={label} className="grid grid-cols-4 gap-3">
       {children}
     </div>
   );

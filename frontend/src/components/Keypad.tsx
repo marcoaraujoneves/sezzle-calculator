@@ -1,5 +1,6 @@
 import { Button } from "@/components/base/Button";
 import { ButtonGrid } from "@/components/base/ButtonGrid";
+import { KEY_ICONS } from "@/constants/key-icons";
 import { KEYS } from "@/constants/keypad";
 import { isKeyDisabled, resolveKeyAction } from "@/lib/keypad";
 import type { Calculator } from "@/types/calculator";
@@ -16,6 +17,7 @@ export function Keypad({ calculator }: KeypadProps) {
           key={key.id}
           label={key.label}
           ariaLabel={key.ariaLabel}
+          icon={KEY_ICONS[key.id]}
           variant={key.variant}
           wide={key.wide}
           disabled={isKeyDisabled(key, calculator)}
