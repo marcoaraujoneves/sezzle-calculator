@@ -11,6 +11,7 @@ export interface ButtonProps {
   /** Makes the key span every column of the grid. */
   wide?: boolean;
   disabled?: boolean;
+  onClick?: () => void;
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -26,12 +27,14 @@ export function Button({
   variant = "digit",
   wide = false,
   disabled = false,
+  onClick,
 }: ButtonProps) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
       disabled={disabled}
+      onClick={onClick}
       className={cn(
         "h-16 rounded-lg text-xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50",
         VARIANT_CLASSES[variant],

@@ -1,6 +1,8 @@
 import { Button } from "@/components/base/Button";
 import type { ButtonVariant } from "@/components/base/Button";
 import { ButtonGrid } from "@/components/base/ButtonGrid";
+import type { Calculator } from "@/hooks/use-calculator";
+import type { Operation } from "@/lib/calculator";
 
 interface KeyDefinition {
   id: string;
@@ -9,6 +11,13 @@ interface KeyDefinition {
   variant: ButtonVariant;
   wide?: boolean;
 }
+
+const OPERATION_BY_KEY: Partial<Record<string, Operation>> = {
+  add: "addition",
+  subtract: "subtraction",
+  multiply: "multiplication",
+  divide: "division",
+};
 
 const KEYS: readonly KeyDefinition[] = [
   { id: "clear", label: "C", ariaLabel: "Clear", variant: "function" },
@@ -45,7 +54,53 @@ const KEYS: readonly KeyDefinition[] = [
   },
 ];
 
-export function Keypad() {
+export interface KeypadProps {
+  calculator: Calculator;
+}
+
+function isDigitKey(key: KeyDefinition): boolean {
+  return /^\d$/.test(key.id);
+}
+
+export function Keypad({ calculator }: KeypadProps) {
+  function clickHandler(key: KeyDefinition): (() => void) | undefined {
+    const operation = OPERATION_BY_KEY[key.id];
+
+    if (isDigitKey(key)) {
+      return () => calculator.onDigit(key.id);
+    }
+
+    if (operation) {
+      return () => calculator.onOperation(operation);
+    }
+
+    if (key.id === "decimal") {
+      return calculator.onDecimal;
+    }
+
+    if (key.id === "clear") {
+      return calculator.onClear;
+    }
+
+    if (key.id === "backspace") {
+      return calculator.onBackspace;
+    }
+
+    if (key.id === "equals") {
+      return calculator.onEquals;
+    }
+
+    return undefined;
+  }
+
+  function isDisabled(key: KeyDefinition): boolean {
+    if (isDigitKey(key)) {
+      return calculator.digitsDisabled;
+    }
+
+    return key.id === "decimal" && calculator.decimalDisabled;
+  }
+
   return (
     <ButtonGrid label="Calculator keys">
       {KEYS.map((key) => (
@@ -55,6 +110,8 @@ export function Keypad() {
           ariaLabel={key.ariaLabel}
           variant={key.variant}
           wide={key.wide}
+          disabled={isDisabled(key)}
+          onClick={clickHandler(key)}
         />
       ))}
     </ButtonGrid>
