@@ -9,8 +9,8 @@ export const missingOperationError = {
 export function operandSchema(field: string) {
   return z
     .string()
-    .min(1, `${field} is required`)
-    .regex(NUMBER_PATTERN, `${field} is not a valid number`)
+    .min(1, `Enter the ${field}.`)
+    .regex(NUMBER_PATTERN, `Enter a valid ${field}.`)
     .transform(Number);
 }
 

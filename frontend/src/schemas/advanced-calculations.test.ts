@@ -32,22 +32,22 @@ describe("validateAdvancedCalculation", () => {
   });
 
   it.each([
-    ["no operation", null, "4", "Select an operation"],
-    ["a basic operation", "addition", "4", "Select an operation"],
-    ["a binary advanced operation", "percentage", "4", "Select an operation"],
-    ["an empty input", "square_root", "", "First input is required"],
+    ["no operation", null, "4", "Select an operation first."],
+    ["a basic operation", "addition", "4", "Select an operation first."],
     [
-      "a lone decimal point",
-      "square_root",
-      ".",
-      "First input is not a valid number",
+      "a binary advanced operation",
+      "percentage",
+      "4",
+      "Select an operation first.",
     ],
-    ["a lone sign", "square_root", "-", "First input is not a valid number"],
+    ["an empty input", "square_root", "", "Enter the first number."],
+    ["a lone decimal point", "square_root", ".", "Enter a valid first number."],
+    ["a lone sign", "square_root", "-", "Enter a valid first number."],
     [
       "an exponent without digits",
       "square_root",
       "1e+",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
   ])("rejects %s", (_name, operation, first, want) => {
     expect(
@@ -94,22 +94,22 @@ describe("validateExponentiation", () => {
   });
 
   it.each([
-    ["no operation", null, "2", "3", "Select an operation"],
-    ["another operation", "addition", "2", "3", "Select an operation"],
-    ["an empty base", "exponentiation", "", "3", "First input is required"],
+    ["no operation", null, "2", "3", "Select an operation first."],
+    ["another operation", "addition", "2", "3", "Select an operation first."],
+    ["an empty base", "exponentiation", "", "3", "Enter the first number."],
     [
       "an empty exponent",
       "exponentiation",
       "2",
       "",
-      "Second input is required",
+      "Enter the second number.",
     ],
     [
       "a lone sign as exponent",
       "exponentiation",
       "2",
       "-",
-      "Second input is not a valid number",
+      "Enter a valid second number.",
     ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(
@@ -153,31 +153,43 @@ describe("validatePercentage", () => {
   });
 
   it.each([
-    ["no operation", null, "20", "150", "Select an operation"],
-    ["another operation", "addition", "20", "150", "Select an operation"],
-    ["exponentiation", "exponentiation", "20", "150", "Select an operation"],
-    ["an empty rate", "percentage", "", "150", "First input is required"],
-    ["an empty base", "percentage", "20", "", "Second input is required"],
+    ["no operation", null, "20", "150", "Select an operation first."],
+    [
+      "another operation",
+      "addition",
+      "20",
+      "150",
+      "Select an operation first.",
+    ],
+    [
+      "exponentiation",
+      "exponentiation",
+      "20",
+      "150",
+      "Select an operation first.",
+    ],
+    ["an empty rate", "percentage", "", "150", "Enter the first number."],
+    ["an empty base", "percentage", "20", "", "Enter the second number."],
     [
       "a lone decimal point as base",
       "percentage",
       "20",
       ".",
-      "Second input is not a valid number",
+      "Enter a valid second number.",
     ],
     [
       "a lone sign as rate",
       "percentage",
       "-",
       "150",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
     [
       "an exponent without digits as base",
       "percentage",
       "20",
       "1e",
-      "Second input is not a valid number",
+      "Enter a valid second number.",
     ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(

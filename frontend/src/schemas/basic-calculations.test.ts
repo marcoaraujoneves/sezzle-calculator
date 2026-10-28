@@ -52,46 +52,52 @@ describe("validateBasicCalculation", () => {
   });
 
   it.each([
-    ["no operation", null, "1", "2", "Select an operation"],
-    ["an unknown operation", "power", "1", "2", "Select an operation"],
-    ["an advanced operation", "square_root", "1", "2", "Select an operation"],
-    ["an empty first input", "addition", "", "2", "First input is required"],
-    ["an empty second input", "addition", "1", "", "Second input is required"],
+    ["no operation", null, "1", "2", "Select an operation first."],
+    ["an unknown operation", "power", "1", "2", "Select an operation first."],
+    [
+      "an advanced operation",
+      "square_root",
+      "1",
+      "2",
+      "Select an operation first.",
+    ],
+    ["an empty first input", "addition", "", "2", "Enter the first number."],
+    ["an empty second input", "addition", "1", "", "Enter the second number."],
     [
       "a lone decimal point",
       "addition",
       ".",
       "2",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
-    ["a lone sign", "addition", "1", "-", "Second input is not a valid number"],
+    ["a lone sign", "addition", "1", "-", "Enter a valid second number."],
     [
       "an exponent without digits",
       "addition",
       "1e",
       "2",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
     [
       "an exponent without a mantissa",
       "addition",
       "1",
       "e+5",
-      "Second input is not a valid number",
+      "Enter a valid second number.",
     ],
     [
       "a decimal exponent",
       "addition",
       "1e2.5",
       "2",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
     [
       "a capital exponent marker",
       "addition",
       "1E5",
       "2",
-      "First input is not a valid number",
+      "Enter a valid first number.",
     ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(
@@ -110,7 +116,7 @@ describe("validateBasicCalculation", () => {
         first_input: "",
         second_input: "",
       }),
-    ).toEqual({ ok: false, error: "First input is required" });
+    ).toEqual({ ok: false, error: "Enter the first number." });
   });
 
   it.each([

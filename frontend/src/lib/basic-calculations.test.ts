@@ -48,15 +48,15 @@ describe("prepareBasicCalculation", () => {
 
     expect(prepareBasicCalculation(state)).toEqual({
       ok: false,
-      error: "Select an operation",
+      error: "Select an operation first.",
     });
   });
 
   it.each([
-    ["an empty first input", "", "2", "First input is required"],
-    ["an empty second input", "1", "", "Second input is required"],
-    ["a lone sign", "1", "-", "Second input is not a valid number"],
-    ["a lone decimal point", ".", "2", "First input is not a valid number"],
+    ["an empty first input", "", "2", "Enter the first number."],
+    ["an empty second input", "1", "", "Enter the second number."],
+    ["a lone sign", "1", "-", "Enter a valid second number."],
+    ["a lone decimal point", ".", "2", "Enter a valid first number."],
   ])("reports %s", (_name, first, second, want) => {
     const state = stateWith({ operation: "addition", first, second });
 
@@ -96,7 +96,7 @@ describe("prepareBasicCalculation", () => {
 
     expect(prepareBasicCalculation(state)).toEqual({
       ok: false,
-      error: "Select an operation",
+      error: "Select an operation first.",
     });
   });
 });

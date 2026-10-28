@@ -13,8 +13,8 @@ import type {
 
 export const basicCalculationSchema = z.object({
   operation: z.enum(OPERATIONS, missingOperationError),
-  first_input: operandSchema("First input"),
-  second_input: operandSchema("Second input"),
+  first_input: operandSchema("first number"),
+  second_input: operandSchema("second number"),
 });
 
 export function validateBasicCalculation(

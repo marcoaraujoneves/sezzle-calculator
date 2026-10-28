@@ -22,19 +22,19 @@ import type {
 
 export const advancedCalculationSchema = z.object({
   operation: z.enum(ADVANCED_OPERATIONS, missingOperationError),
-  first_input: operandSchema("First input"),
+  first_input: operandSchema("first number"),
 });
 
 export const exponentiationSchema = z.object({
   operation: z.literal(EXPONENTIATION, missingOperationError),
-  first_input: operandSchema("First input"),
-  second_input: operandSchema("Second input"),
+  first_input: operandSchema("first number"),
+  second_input: operandSchema("second number"),
 });
 
 export const percentageSchema = z.object({
   operation: z.literal(PERCENTAGE, missingOperationError),
-  first_input: operandSchema("First input"),
-  second_input: operandSchema("Second input"),
+  first_input: operandSchema("first number"),
+  second_input: operandSchema("second number"),
 });
 
 export function validateAdvancedCalculation(

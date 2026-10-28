@@ -64,8 +64,8 @@ describe("prepareUnaryCalculation", () => {
   });
 
   it.each([
-    ["an empty calculator", "", "First input is required"],
-    ["a lone sign", "-", "First input is not a valid number"],
+    ["an empty calculator", "", "Enter the first number."],
+    ["a lone sign", "-", "Enter a valid first number."],
   ])("rejects %s", (_name, first, want) => {
     expect(
       prepareUnaryCalculation("square_root", stateWith({ first })),
@@ -116,9 +116,9 @@ describe("prepareBinaryAdvancedCalculation", () => {
   );
 
   it.each([
-    ["percentage", "", "150", "First input is required"],
-    ["percentage", "20", "", "Second input is required"],
-    ["exponentiation", "2", "", "Second input is required"],
+    ["percentage", "", "150", "Enter the first number."],
+    ["percentage", "20", "", "Enter the second number."],
+    ["exponentiation", "2", "", "Enter the second number."],
   ] as const)("rejects %s with %j and %j", (operation, first, second, want) => {
     const state = stateWith({ operation, first, second });
 
@@ -157,7 +157,7 @@ describe("prepareBinaryAdvancedCalculation", () => {
 
     expect(prepareBinaryAdvancedCalculation(state)).toEqual({
       ok: false,
-      error: "Select an operation",
+      error: "Select an operation first.",
     });
   });
 });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { firstIssue, operandSchema } from "./operations";
 
 describe("operandSchema", () => {
-  const schema = operandSchema("Operand");
+  const schema = operandSchema("number");
 
   it.each([
     ["0", 0],
@@ -34,24 +34,24 @@ describe("operandSchema", () => {
   });
 
   it.each([
-    ["an empty string", "", "Operand is required"],
-    ["a lone sign", "-", "Operand is not a valid number"],
-    ["a lone decimal point", ".", "Operand is not a valid number"],
-    ["a signed decimal point", "-.", "Operand is not a valid number"],
-    ["a plus sign", "+5", "Operand is not a valid number"],
-    ["a double sign", "--5", "Operand is not a valid number"],
-    ["two decimal points", "1.2.3", "Operand is not a valid number"],
-    ["a comma separator", "1,5", "Operand is not a valid number"],
-    ["leading whitespace", " 5", "Operand is not a valid number"],
-    ["trailing whitespace", "5 ", "Operand is not a valid number"],
-    ["an exponent marker alone", "e5", "Operand is not a valid number"],
-    ["an exponent without digits", "1e", "Operand is not a valid number"],
-    ["an exponent with only a sign", "1e+", "Operand is not a valid number"],
-    ["a decimal exponent", "1e1.5", "Operand is not a valid number"],
-    ["a capital exponent marker", "1E5", "Operand is not a valid number"],
-    ["Infinity", "Infinity", "Operand is not a valid number"],
-    ["NaN", "NaN", "Operand is not a valid number"],
-    ["letters", "abc", "Operand is not a valid number"],
+    ["an empty string", "", "Enter the number."],
+    ["a lone sign", "-", "Enter a valid number."],
+    ["a lone decimal point", ".", "Enter a valid number."],
+    ["a signed decimal point", "-.", "Enter a valid number."],
+    ["a plus sign", "+5", "Enter a valid number."],
+    ["a double sign", "--5", "Enter a valid number."],
+    ["two decimal points", "1.2.3", "Enter a valid number."],
+    ["a comma separator", "1,5", "Enter a valid number."],
+    ["leading whitespace", " 5", "Enter a valid number."],
+    ["trailing whitespace", "5 ", "Enter a valid number."],
+    ["an exponent marker alone", "e5", "Enter a valid number."],
+    ["an exponent without digits", "1e", "Enter a valid number."],
+    ["an exponent with only a sign", "1e+", "Enter a valid number."],
+    ["a decimal exponent", "1e1.5", "Enter a valid number."],
+    ["a capital exponent marker", "1E5", "Enter a valid number."],
+    ["Infinity", "Infinity", "Enter a valid number."],
+    ["NaN", "NaN", "Enter a valid number."],
+    ["letters", "abc", "Enter a valid number."],
   ])("rejects %s", (_name, input, want) => {
     const result = schema.safeParse(input);
 
@@ -60,10 +60,10 @@ describe("operandSchema", () => {
   });
 
   it("names the field in every message", () => {
-    const named = operandSchema("Exponent");
+    const named = operandSchema("exponent");
 
     expect(named.safeParse("").error?.issues[0].message).toBe(
-      "Exponent is required",
+      "Enter the exponent.",
     );
   });
 

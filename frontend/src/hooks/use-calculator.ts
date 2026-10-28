@@ -18,7 +18,7 @@ import {
   selectOperation,
   toggleSign,
 } from "@/lib/calculator";
-import { errorMessage } from "@/lib/errors";
+import { friendlyErrorMessage } from "@/lib/errors";
 import { formatExpression, formatNumber } from "@/lib/formatting";
 import { calculateAdvanced } from "@/services/advanced-calculations";
 import { calculate } from "@/services/basic-calculations";
@@ -38,7 +38,7 @@ export function useCalculator(): Calculator {
 
       setState(answerState(result));
     } catch (error: unknown) {
-      toast.error(errorMessage(error));
+      toast.error(friendlyErrorMessage(error));
       setState(INITIAL_STATE);
     } finally {
       setIsLoading(false);
