@@ -38,8 +38,8 @@ func TestCalculateBasic(t *testing.T) {
 		{"empty operation", "", 2, 3, 0, handlers.ErrUnknownOperation},
 		{"operation names are case sensitive", "Addition", 2, 3, 0, handlers.ErrUnknownOperation},
 
-		// Nine-digit operands are the largest the API accepts; their products no longer fit the 53
-		// bits of float64 precision, so the result is the nearest representable value.
+		// Nine-digit operands are the largest the SPA lets a user type; their products no longer fit
+		// the 53 bits of float64 precision, so the result is the nearest representable value.
 		{"largest operands added", handlers.OperationAddition, maxOperand, maxOperand, 1999999998, nil},
 		{"largest operands subtracted", handlers.OperationSubtraction, -maxOperand, maxOperand, -1999999998, nil},
 		{"largest operands multiplied", handlers.OperationMultiplication, maxOperand, maxOperand, 9.99999998e17, nil},
@@ -49,7 +49,7 @@ func TestCalculateBasic(t *testing.T) {
 		{"binary fractions are inexact", handlers.OperationAddition, 0.1, 0.2, 0.30000000000000004, nil},
 		{"integer sums above 2^53 lose the last bit", handlers.OperationAddition, 9007199254740992, 1, 9007199254740992, nil},
 
-		// A decimal literal such as 1e308 passes the nine-digit limit, so overflow must be handled.
+		// A short literal such as 1e308 is a valid operand, so overflow must be handled.
 		{"addition overflowing", handlers.OperationAddition, math.MaxFloat64, math.MaxFloat64, 0, handlers.ErrResultNotRepresented},
 		{"addition overflowing negatively", handlers.OperationAddition, -math.MaxFloat64, -math.MaxFloat64, 0, handlers.ErrResultNotRepresented},
 		{"subtraction overflowing", handlers.OperationSubtraction, math.MaxFloat64, -math.MaxFloat64, 0, handlers.ErrResultNotRepresented},

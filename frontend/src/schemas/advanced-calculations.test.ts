@@ -13,7 +13,12 @@ describe("validateAdvancedCalculation", () => {
     ["0.0001", 0.0001],
     ["0", 0],
     ["-0", -0],
-    ["123456789", 123456789],
+    ["123456789012345", 123456789012345],
+    ["0.30000000000000004", 0.1 + 0.2],
+    ["1e+21", 1e21],
+    ["5e-324", Number.MIN_VALUE],
+    ["-4", -4],
+    ["-0.00000001", -0.00000001],
   ])("accepts the square root of %j", (input, want) => {
     expect(
       validateAdvancedCalculation({
@@ -39,34 +44,10 @@ describe("validateAdvancedCalculation", () => {
     ],
     ["a lone sign", "square_root", "-", "First input is not a valid number"],
     [
-      "exponent notation",
+      "an exponent without digits",
       "square_root",
-      "1e+21",
+      "1e+",
       "First input is not a valid number",
-    ],
-    [
-      "ten digits",
-      "square_root",
-      "1234567890",
-      "First input must have at most 9 digits",
-    ],
-    [
-      "a negative number",
-      "square_root",
-      "-4",
-      "Square root of a negative number is not allowed",
-    ],
-    [
-      "a negative decimal",
-      "square_root",
-      "-0.5",
-      "Square root of a negative number is not allowed",
-    ],
-    [
-      "the smallest negative decimal",
-      "square_root",
-      "-0.00000001",
-      "Square root of a negative number is not allowed",
     ],
   ])("rejects %s", (_name, operation, first, want) => {
     expect(
@@ -90,6 +71,11 @@ describe("validateExponentiation", () => {
     ["5", "2.0", 5, 2],
     ["10", "308", 10, 308],
     ["2", "1023", 2, 1023],
+    ["2", "1.5", 2, 1.5],
+    ["0", "-2", 0, -2],
+    ["999999999", "999999999", 999999999, 999999999],
+    ["10", "309", 10, 309],
+    ["1e+21", "2", 1e21, 2],
   ])("accepts %j to the power %j", (first, second, wantFirst, wantSecond) => {
     expect(
       validateExponentiation({
@@ -125,76 +111,6 @@ describe("validateExponentiation", () => {
       "-",
       "Second input is not a valid number",
     ],
-    [
-      "a ten digit base",
-      "exponentiation",
-      "1234567890",
-      "2",
-      "First input must have at most 9 digits",
-    ],
-    [
-      "a ten digit exponent",
-      "exponentiation",
-      "2",
-      "1234567890",
-      "Second input must have at most 9 digits",
-    ],
-    [
-      "a decimal exponent",
-      "exponentiation",
-      "2",
-      "1.5",
-      "Exponent must be an integer",
-    ],
-    [
-      "a negative decimal exponent",
-      "exponentiation",
-      "2",
-      "-0.5",
-      "Exponent must be an integer",
-    ],
-    [
-      "a tiny decimal exponent",
-      "exponentiation",
-      "2",
-      "0.000001",
-      "Exponent must be an integer",
-    ],
-    [
-      "an overflowing positive result",
-      "exponentiation",
-      "999999999",
-      "999999999",
-      "Result is too large to be represented",
-    ],
-    [
-      "an overflowing negative result",
-      "exponentiation",
-      "-999999999",
-      "999999999",
-      "Result is too large to be represented",
-    ],
-    [
-      "the first power past the float limit",
-      "exponentiation",
-      "10",
-      "309",
-      "Result is too large to be represented",
-    ],
-    [
-      "two to the 1024th",
-      "exponentiation",
-      "2",
-      "1024",
-      "Result is too large to be represented",
-    ],
-    [
-      "zero to a negative power",
-      "exponentiation",
-      "0",
-      "-2",
-      "Result is too large to be represented",
-    ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(
       validateExponentiation({
@@ -217,7 +133,8 @@ describe("validatePercentage", () => {
     ["0", "0", 0, 0],
     ["0.5", ".5", 0.5, 0.5],
     ["5", "2.", 5, 2],
-    ["123456789", "123456789", 123456789, 123456789],
+    ["123456789012345", "123456789012345", 123456789012345, 123456789012345],
+    ["0.30000000000000004", "1e+21", 0.1 + 0.2, 1e21],
   ])("accepts %j percent of %j", (first, second, wantFirst, wantSecond) => {
     expect(
       validatePercentage({
@@ -256,18 +173,11 @@ describe("validatePercentage", () => {
       "First input is not a valid number",
     ],
     [
-      "a ten digit rate",
-      "percentage",
-      "1234567890",
-      "150",
-      "First input must have at most 9 digits",
-    ],
-    [
-      "a ten digit base",
+      "an exponent without digits as base",
       "percentage",
       "20",
-      "1234567890",
-      "Second input must have at most 9 digits",
+      "1e",
+      "Second input is not a valid number",
     ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(

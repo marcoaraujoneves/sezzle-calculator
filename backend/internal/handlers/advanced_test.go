@@ -53,7 +53,7 @@ func TestCalculateAdvanced(t *testing.T) {
 		{"zero to a negative power", handlers.OperationExponentiation, 0, ptr(-2), 0, handlers.ErrResultNotRepresented},
 		{"power underflowing to zero", handlers.OperationExponentiation, 10, ptr(-1000), 0, nil},
 
-		// The nine-digit limit allows exponents far beyond what float64 can hold.
+		// Exponents are not bounded, so they can go far beyond what float64 can hold.
 		{"two to the largest representable power", handlers.OperationExponentiation, 2, ptr(1023), math.Ldexp(1, 1023), nil},
 		{"two to the first overflowing power", handlers.OperationExponentiation, 2, ptr(1024), 0, handlers.ErrResultNotRepresented},
 		{"two to the smallest representable power", handlers.OperationExponentiation, 2, ptr(-1074), math.SmallestNonzeroFloat64, nil},

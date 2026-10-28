@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { OPERATIONS } from "@/constants/operations";
-import { VALIDATION_MESSAGES } from "@/constants/validation";
 import {
   firstIssue,
   missingOperationError,
@@ -12,18 +11,11 @@ import type {
   ValidationResult,
 } from "@/types/validation";
 
-export const basicCalculationSchema = z
-  .object({
-    operation: z.enum(OPERATIONS, missingOperationError),
-    first_input: operandSchema("First input"),
-    second_input: operandSchema("Second input"),
-  })
-  .refine(
-    ({ operation, second_input }) => {
-      return operation !== "division" || second_input !== 0;
-    },
-    { message: VALIDATION_MESSAGES.divisionByZero, path: ["second_input"] },
-  );
+export const basicCalculationSchema = z.object({
+  operation: z.enum(OPERATIONS, missingOperationError),
+  first_input: operandSchema("First input"),
+  second_input: operandSchema("Second input"),
+});
 
 export function validateBasicCalculation(
   input: BinaryCalculationInput,

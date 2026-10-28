@@ -51,3 +51,5 @@ The next, improving the code quality. On a greenfield project, the model output 
 After completing this step for the frontend, I found a bug regarding the first point: the agent created the optimized representation of overflowing numbers, but these can't be reused as `Ans` for the backend. I'll get back to that after also refactoring the backend.
 
 The backend refacor involved, besides code quality, a hardening around the type constraints for the range of representable numbers.
+
+I decided to refactor on the limits of digits to prevent quickly reaching a blocked UX, since the backend and JSON payloads can handle larger inputs.

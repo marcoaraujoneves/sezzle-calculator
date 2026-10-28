@@ -15,7 +15,7 @@ Calculator full-stack assessment (see `ASSESSMENT.md`). `backend/` is a Go calcu
 - Name for meaning (`firstOperand`, `isIntegerExponent`, `validationErr`), never `n`, `res`, `req`-style abbreviations; no magic strings (operations, fields, paths are constants).
 - Always braces and a new line for `if`; assign a multi-clause condition to a named boolean; blank lines between guards, derivations and the return.
 - One shared helper per repeated concern (`internal/httpjson` writes every response, `calculationHandler` decodes and answers every calculation).
-- Operands are `float64` and the digit limit does not bound magnitude (`1e308` has 4 digits), so every operation that can overflow goes through `ensureRepresentable`. Tests must cover the 9-digit extremes, `math.MaxFloat64`, `math.SmallestNonzeroFloat64`, overflow and underflow.
+- Operands are `float64` and answers are fed back as operands, so there is no digit limit (the SPA caps typing at 15 digits); the request body size is what is bounded. Every operation that can overflow goes through `ensureRepresentable`. Tests must cover 17+ digit answers, `math.MaxFloat64`, `math.SmallestNonzeroFloat64`, overflow and underflow.
 
 ## Frontend (`frontend/`)
 
@@ -33,6 +33,7 @@ Calculator full-stack assessment (see `ASSESSMENT.md`). `backend/` is a Go calcu
 - `lib/`: pure functions only, split by concern (state, formatting, preparing each kind of calculation).
 - `services/`: HTTP calls. `hooks/`: wiring of state, lib and services. `components/`: markup.
 - Every `lib/` and `schemas/` file has a colocated `*.test.ts` covering boundaries, invalid input, and decimals.
+- The backend owns business validation (division by zero, negative square root, integer exponent, overflow). The client only checks that an operation is selected and that an input parses as a number, including the exponent notation of previous answers.
 
 ### Code style
 

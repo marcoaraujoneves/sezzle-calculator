@@ -150,6 +150,7 @@ Now, let's handle restults which contain more than 9 digits using scientific not
 **Developer:**
 
 I want to improve the code quality and maintainability, using principles of DRY, SoC, and Clean Code. We must start with the frontend:
+
 - We currently have multiple constants inside components' files, and they shoul have a dedicated TS file under /src/constants/ per logical entity (e.g., constants/keypad.ts)
 - The schemas should live in /src/schemas, with operations.ts for shared utilities, advanced-calculations.ts and basic-calculations.ts to split the rest. Each file gets is testing suite, handling boundaries, invalid inputs, decimals, and so on
 - Functions should be re-written featuring clearly named variables, spaces between statement clusters, and avoid single line if's which reduce readability.
@@ -180,3 +181,15 @@ Similarly, we will do the improvements regarding readability and testing to the 
 > Tests: new cases for the 9-digit extremes (999999999 squared is only the nearest float64, 9.99999998e17), `math.MaxFloat64` and `math.SmallestNonzeroFloat64` in every operation, overflow to both infinities, underflow to zero, `-0`, 2^1023 and 2^1024, odd and even exponents of -1, a 1e300 exponent, 0.1+0.2, and absorption above 2^53. The middleware tests assert each error message, that rejected requests never reach the next handler, an unreadable body, optional operands and exponent notation. Added end-to-end limit tests at the root package and `httpjson` tests. `gofmt`, `go vet` and `go test -race` pass. `.claude/CLAUDE.md` gained backend style rules.
 >
 > Not changed: exponent notation is still accepted by the backend, so `1e308` is a valid operand; the SPA never sends it. Tightening that is a behavior change I left for the developer to decide.
+
+## PROMPT #11 - Review: reusing long answers, cursor editing and backend-only validation
+
+**Developer:**
+
+I've found one bug: we are parsing the answer to show when it has more digits than the threshold, and if we try to reuse its value, we get an error due to the number of digits we send to the backend. Considering the data typpes we are using in Go and JSON's limits, I'm thinking about refactoring the codebase to stop truncating digits and have arrow cursors in the UI, like scientific calculators. Review how would that play out and wheter we can rely on the backend's representable checks and avoid validating that on the client-side.
+
+**Agent:**
+
+> Review only, no code changed. Root cause: the 9-digit rule is applied to answers on both sides (`operandSchema` and `middleware.countDigits`), and the client's `NUMBER_PATTERN` rejects the exponent notation `String(result)` produces (`1e+21`, `1e-7`, `5e-324`). Verified with a Bun probe that the float64 round trip through Go and JS is lossless, so state can hold the exact answer. Findings: drop the backend digit limit in favour of a body-size cap, keep a typed-digit cap client-side (15, the float64 round-trip guarantee), remove the client `Number.isFinite(first ** second)` check, and keep only a parse step for the editing buffer. Cursor editing is a separate, larger change (cursor in `CalculatorState`, insert/delete at cursor, scrolling display) and answers should stay atomic tokens.
+>
+> Implemented steps 1 and 2 of the PROMPT #11 review. Backend: removed the 9-digit rule from `middleware.WithOperands` and added `http.MaxBytesReader` (1 KiB, answered with a 413). Tests that asserted the limit now assert that 17-18 digit answers, `1e+21`, `5e-324` and `-MaxFloat64` are accepted and reused end to end, plus the body-size boundary. Frontend: `MAX_DIGITS` is now a 15-digit typing cap (the float64 round-trip guarantee) that also drives the display shortening, `NUMBER_PATTERN` accepts the exponent notation of answers, `operandSchema` no longer counts digits, and the schemas dropped division by zero, negative square root, integer exponent and the `Number.isFinite(first ** second)` check, together with their messages; the backend answers those. Tests were rewritten to the new contract, `.claude/CLAUDE.md`, the skill and `WRITEUP.md` updated. Steering: the developer rejected a shell heredoc call and asked for no scripts, so all edits used the Edit/Write tools. Not done (steps 3-4): underflow policy, the generic out-of-range message and cursor editing.

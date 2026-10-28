@@ -24,20 +24,15 @@ func TestWithOperands(t *testing.T) {
 		{"whitespace around values", `{"first_input" : 1 , "second_input" :	2 }`, ""},
 		{"duplicate field uses the last value", `{"first_input":"x","first_input":1,"second_input":2}`, ""},
 
+		// Answers are reused as operands, so a literal is never rejected for its length.
 		{"nine digits is allowed", `{"first_input":123456789,"second_input":-987654321}`, ""},
-		{"decimal point is not a digit", `{"first_input":12345678.9,"second_input":0.5}`, ""},
-		{"nine decimals is allowed", `{"first_input":0.12345678,"second_input":0.00000001}`, ""},
-		{"ten digits is rejected", `{"first_input":1234567890,"second_input":1}`, "first_input must have at most 9 digits"},
-		{"negative ten digits is rejected", `{"first_input":1,"second_input":-1234567890}`, "second_input must have at most 9 digits"},
-		{"ten digits in second operand", `{"first_input":1,"second_input":1234567.890}`, "second_input must have at most 9 digits"},
-		{"ten decimals is rejected", `{"first_input":0.123456789,"second_input":1}`, "first_input must have at most 9 digits"},
-		{"leading zeros after the point count", `{"first_input":0.000000001,"second_input":1}`, "first_input must have at most 9 digits"},
-		{"trailing zeros count", `{"first_input":1.000000000,"second_input":1}`, "first_input must have at most 9 digits"},
+		{"previous answer with seventeen significant digits", `{"first_input":0.30000000000000004,"second_input":1}`, ""},
+		{"previous answer with eighteen integer digits", `{"first_input":999999998000000000,"second_input":-999999998000000000}`, ""},
+		{"longest float64 literal", `{"first_input":-1.7976931348623157e+308,"second_input":5e-324}`, ""},
 
-		// Exponent notation is accepted: its digits count, so 1e308 only looks short. The calculation
-		// handlers are responsible for the overflow it can cause.
+		// Exponent notation is accepted. The calculation handlers are responsible for the overflow it
+		// can cause.
 		{"short exponent literal is allowed", `{"first_input":1e308,"second_input":2e-5}`, ""},
-		{"exponent digits count toward the limit", `{"first_input":12345678e10,"second_input":1}`, "first_input must have at most 9 digits"},
 		{"exponent with a sign and capital letter", `{"first_input":1E+5,"second_input":1}`, ""},
 
 		{"missing first", `{"second_input":2}`, "first_input is required"},
@@ -109,9 +104,8 @@ func TestWithOperandsSingleField(t *testing.T) {
 	}{
 		{"only the named operand is required", `{"first_input":9}`, http.StatusOK},
 		{"unnamed operand is ignored", `{"first_input":9,"second_input":"x"}`, http.StatusOK},
-		{"unnamed operand is not digit limited", `{"first_input":9,"second_input":1234567890123}`, http.StatusOK},
 		{"missing named operand", `{"second_input":9}`, http.StatusBadRequest},
-		{"named operand over the digit limit", `{"first_input":1234567890}`, http.StatusBadRequest},
+		{"named operand of the wrong type", `{"first_input":"9"}`, http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
@@ -140,11 +134,10 @@ func TestWithOperandsOptionalField(t *testing.T) {
 		{"present optional operand", `{"first_input":9,"second_input":2}`, ""},
 		{"zero optional operand", `{"first_input":9,"second_input":0}`, ""},
 		{"optional operand with nine digits", `{"first_input":9,"second_input":-123456789}`, ""},
-		{"optional operand with ten digits", `{"first_input":9,"second_input":1234567890}`, "second_input must have at most 9 digits"},
-		{"optional operand with ten decimals", `{"first_input":9,"second_input":0.123456789}`, "second_input must have at most 9 digits"},
+		{"optional operand with seventeen significant digits", `{"first_input":9,"second_input":0.30000000000000004}`, ""},
 		{"string optional operand", `{"first_input":9,"second_input":"2"}`, "second_input must be a number"},
 		{"boolean optional operand", `{"first_input":9,"second_input":false}`, "second_input must be a number"},
-		{"required operand is checked first", `{"second_input":1234567890}`, "first_input is required"},
+		{"required operand is checked first", `{"second_input":"2"}`, "first_input is required"},
 	}
 
 	for _, tt := range tests {
@@ -201,6 +194,32 @@ func TestWithOperandsUnreadableBody(t *testing.T) {
 	wantBody := `{"error":"unreadable request body"}`
 	if gotBody := strings.TrimSpace(recorder.Body.String()); gotBody != wantBody {
 		t.Errorf("body = %q, want %q", gotBody, wantBody)
+	}
+}
+
+func TestWithOperandsBodyTooLarge(t *testing.T) {
+	tests := []struct {
+		name       string
+		digitCount int
+		wantStatus int
+	}{
+		{"body at the limit is forwarded", 1024 - len(`{"first_input":}`), http.StatusOK},
+		{"body one byte over the limit", 1024 - len(`{"first_input":}`) + 1, http.StatusRequestEntityTooLarge},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+			body := `{"first_input":` + strings.Repeat("1", tt.digitCount) + `}`
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+
+			middleware.WithOperands([]string{"first_input"}, nil, next).ServeHTTP(recorder, request)
+
+			if recorder.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d (body %q)", recorder.Code, tt.wantStatus, recorder.Body.String())
+			}
+		})
 	}
 }
 

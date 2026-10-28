@@ -11,16 +11,25 @@ import (
 	"sezzle-calculator/internal/httpjson"
 )
 
-const maxOperandDigits = 9
+// Answers are fed back as operands, so their length is bounded by the body size instead of a digit
+// count: the longest float64 literal is under 30 bytes, which leaves room for any valid request.
+const maxBodyBytes = 1024
 
 var errBodyNotObject = errors.New("body must be a JSON object")
 
 // WithOperands rejects requests whose JSON body lacks any of the required operand fields, or whose
-// operands have more than 9 digits, so handlers can assume well-formed operands. Optional operands
-// may be absent or null, but when given they are held to the same rules.
+// operands are not numbers, so handlers can assume well-formed operands. Optional operands may be
+// absent or null, but when given they are held to the same rules.
 func WithOperands(requiredNames, optionalNames []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, readErr := io.ReadAll(r.Body)
+		body, readErr := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
+
+		_, isBodyTooLarge := errors.AsType[*http.MaxBytesError](readErr)
+		if isBodyTooLarge {
+			httpjson.WriteError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
+
 		if readErr != nil {
 			httpjson.WriteError(w, http.StatusBadRequest, "unreadable request body")
 			return
@@ -79,10 +88,6 @@ func validateOperand(name string, rawOperand json.RawMessage) error {
 		return fmt.Errorf("%s must be a number", name)
 	}
 
-	if countDigits(rawOperand) > maxOperandDigits {
-		return fmt.Errorf("%s must have at most %d digits", name, maxOperandDigits)
-	}
-
 	return nil
 }
 
@@ -97,18 +102,4 @@ func isNumberLiteral(rawValue json.RawMessage) bool {
 	isDigit := firstByte >= '0' && firstByte <= '9'
 
 	return isDigit || firstByte == '-'
-}
-
-// countDigits ignores sign, decimal point and exponent marker: only the digits a user typed
-// count toward the limit.
-func countDigits(rawNumber json.RawMessage) int {
-	digitCount := 0
-
-	for _, character := range rawNumber {
-		if character >= '0' && character <= '9' {
-			digitCount++
-		}
-	}
-
-	return digitCount
 }

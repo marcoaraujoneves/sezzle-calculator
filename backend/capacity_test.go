@@ -30,7 +30,12 @@ func TestCalculationEndpointsAtTypeLimits(t *testing.T) {
 		{"addition overflowing the float type", "/basic-calculations", `{"operation":"addition","first_input":1.7e308,"second_input":1.7e308}`, http.StatusBadRequest, `{"error":"result is too large to be represented"}`},
 		{"division overflowing the float type", "/basic-calculations", `{"operation":"division","first_input":1e308,"second_input":1e-10}`, http.StatusBadRequest, `{"error":"result is too large to be represented"}`},
 		{"operand beyond the float range", "/basic-calculations", `{"operation":"addition","first_input":1e999,"second_input":1}`, http.StatusBadRequest, `{"error":"invalid request body"}`},
-		{"operand digits beyond the limit", "/basic-calculations", `{"operation":"addition","first_input":1234567890,"second_input":1}`, http.StatusBadRequest, `{"error":"first_input must have at most 9 digits"}`},
+		{"previous answer with seventeen digits is reused", "/basic-calculations", `{"operation":"addition","first_input":0.30000000000000004,"second_input":1}`, http.StatusOK, `{"result":1.3}`},
+		{"previous answer with eighteen digits is reused", "/basic-calculations", `{"operation":"subtraction","first_input":999999998000000000,"second_input":1000000000}`, http.StatusOK, `{"result":999999997000000000}`},
+		{"previous answer in exponent notation is reused", "/basic-calculations", `{"operation":"addition","first_input":1e+21,"second_input":1}`, http.StatusOK, `{"result":1e+21}`},
+		{"smallest positive float reused", "/basic-calculations", `{"operation":"multiplication","first_input":5e-324,"second_input":1}`, http.StatusOK, `{"result":5e-324}`},
+		{"largest float reused", "/basic-calculations", `{"operation":"multiplication","first_input":1.7976931348623157e+308,"second_input":1}`, http.StatusOK, `{"result":1.7976931348623157e+308}`},
+		{"request body beyond the size limit", "/basic-calculations", `{"operation":"addition","first_input":` + strings.Repeat("1", 1024) + `,"second_input":1}`, http.StatusRequestEntityTooLarge, `{"error":"request body too large"}`},
 
 		{"largest square root", "/advanced-calculations", `{"operation":"square_root","first_input":999999999}`, http.StatusOK, `{"result":31622.776585872405}`},
 		{"largest base squared", "/advanced-calculations", `{"operation":"exponentiation","first_input":999999999,"second_input":2}`, http.StatusOK, `{"result":999999998000000000}`},
@@ -40,7 +45,7 @@ func TestCalculationEndpointsAtTypeLimits(t *testing.T) {
 		{"exponent with exponent notation", "/advanced-calculations", `{"operation":"exponentiation","first_input":2,"second_input":1e1}`, http.StatusOK, `{"result":1024}`},
 		{"percentage overflowing the float type", "/advanced-calculations", `{"operation":"percentage","first_input":1e308,"second_input":1e308}`, http.StatusBadRequest, `{"error":"result is too large to be represented"}`},
 		{"percentage of the largest base", "/advanced-calculations", `{"operation":"percentage","first_input":50,"second_input":999999999}`, http.StatusOK, `{"result":499999999.5}`},
-		{"second input over the digit limit", "/advanced-calculations", `{"operation":"percentage","first_input":1,"second_input":1234567890}`, http.StatusBadRequest, `{"error":"second_input must have at most 9 digits"}`},
+		{"second input with eighteen digits is reused", "/advanced-calculations", `{"operation":"percentage","first_input":50,"second_input":999999998000000000}`, http.StatusOK, `{"result":499999999000000000}`},
 		{"second input of the wrong type", "/advanced-calculations", `{"operation":"exponentiation","first_input":2,"second_input":"3"}`, http.StatusBadRequest, `{"error":"second_input must be a number"}`},
 	}
 

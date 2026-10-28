@@ -28,9 +28,19 @@ describe("validateBasicCalculation", () => {
     ["a negative number", "-5", -5],
     ["a leading decimal point", ".5", 0.5],
     ["a trailing decimal point", "5.", 5],
-    ["nine digits", "123456789", 123456789],
-    ["nine digits with decimals", "1.23456789", 1.23456789],
+    ["fifteen digits", "123456789012345", 123456789012345],
+    ["fifteen digits with decimals", "1.23456789012345", 1.23456789012345],
     ["a negative decimal", "-12345678.9", -12345678.9],
+    ["an answer with seventeen digits", "0.30000000000000004", 0.1 + 0.2],
+    [
+      "an answer with eighteen digits",
+      "999999998000000000",
+      999999998000000000,
+    ],
+    ["a large exponent answer", "1e+21", 1e21],
+    ["a negative large answer", "-1.7976931348623157e+308", -Number.MAX_VALUE],
+    ["a tiny exponent answer", "1e-7", 1e-7],
+    ["the smallest positive answer", "5e-324", Number.MIN_VALUE],
   ])("converts %s into a number", (_name, input, want) => {
     const result = validateBasicCalculation({
       operation: "subtraction",
@@ -56,53 +66,32 @@ describe("validateBasicCalculation", () => {
     ],
     ["a lone sign", "addition", "1", "-", "Second input is not a valid number"],
     [
-      "exponent notation",
+      "an exponent without digits",
       "addition",
-      "1e+21",
+      "1e",
       "2",
       "First input is not a valid number",
     ],
     [
-      "ten digits",
+      "an exponent without a mantissa",
       "addition",
       "1",
-      "1234567890",
-      "Second input must have at most 9 digits",
+      "e+5",
+      "Second input is not a valid number",
     ],
     [
-      "ten digits with a decimal point",
+      "a decimal exponent",
       "addition",
-      "1234567.890",
-      "1",
-      "First input must have at most 9 digits",
+      "1e2.5",
+      "2",
+      "First input is not a valid number",
     ],
     [
-      "division by zero",
-      "division",
-      "1",
-      "0",
-      "Division by zero is not allowed",
-    ],
-    [
-      "division by 0.0",
-      "division",
-      "1",
-      "0.0",
-      "Division by zero is not allowed",
-    ],
-    [
-      "division by negative zero",
-      "division",
-      "1",
-      "-0",
-      "Division by zero is not allowed",
-    ],
-    [
-      "division by a bare decimal zero",
-      "division",
-      "1",
-      "0.",
-      "Division by zero is not allowed",
+      "a capital exponent marker",
+      "addition",
+      "1E5",
+      "2",
+      "First input is not a valid number",
     ],
   ])("rejects %s", (_name, operation, first, second, want) => {
     expect(
@@ -130,13 +119,20 @@ describe("validateBasicCalculation", () => {
     ["addition", "0", "0"],
     ["subtraction", "0", "0"],
     ["division", "1", "0.000001"],
-  ])("allows zero in %s of %j and %j", (operation, first, second) => {
-    expect(
-      validateBasicCalculation({
-        operation,
-        first_input: first,
-        second_input: second,
-      }).ok,
-    ).toBe(true);
-  });
+    ["division", "1", "0"],
+    ["division", "1", "0.0"],
+    ["division", "1", "-0"],
+    ["division", "1", "0."],
+  ])(
+    "leaves zero in %s of %j and %j to the backend",
+    (operation, first, second) => {
+      expect(
+        validateBasicCalculation({
+          operation,
+          first_input: first,
+          second_input: second,
+        }).ok,
+      ).toBe(true);
+    },
+  );
 });

@@ -107,7 +107,7 @@ Vitest, functions only, no DOM or component tests. Files are colocated as `<name
 
 ## Comments
 
-Comment WHY, never HOW, and only for business rules that aren't obvious (the 9 digit limit, why minus acts as a sign, why percentage goes through the advanced endpoint). No TODOs. If a comment explains what the code does, rename or extract instead.
+Comment WHY, never HOW, and only for business rules that aren't obvious (the 15 digit typing cap, why minus acts as a sign, why percentage goes through the advanced endpoint). No TODOs. If a comment explains what the code does, rename or extract instead.
 
 ## Workflow after edits
 

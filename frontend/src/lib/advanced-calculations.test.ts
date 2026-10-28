@@ -66,21 +66,29 @@ describe("prepareUnaryCalculation", () => {
   it.each([
     ["an empty calculator", "", "First input is required"],
     ["a lone sign", "-", "First input is not a valid number"],
-    ["ten digits", "1234567890", "First input must have at most 9 digits"],
-    [
-      "a negative number",
-      "-4",
-      "Square root of a negative number is not allowed",
-    ],
-    [
-      "a negative decimal",
-      "-0.25",
-      "Square root of a negative number is not allowed",
-    ],
   ])("rejects %s", (_name, first, want) => {
     expect(
       prepareUnaryCalculation("square_root", stateWith({ first })),
     ).toEqual({ ok: false, error: want });
+  });
+
+  it.each(["-4", "-0.25"])(
+    "leaves the square root of %j to the backend",
+    (first) => {
+      expect(
+        prepareUnaryCalculation("square_root", stateWith({ first })).ok,
+      ).toBe(true);
+    },
+  );
+
+  it.each([
+    ["0.30000000000000004", 0.30000000000000004],
+    ["1e+21", 1e21],
+    ["5e-324", Number.MIN_VALUE],
+  ])("sends the previous answer %j as it is", (first, want) => {
+    expect(
+      prepareUnaryCalculation("square_root", stateWith({ first })),
+    ).toMatchObject({ ok: true, payload: { first_input: want } });
   });
 });
 
@@ -111,14 +119,6 @@ describe("prepareBinaryAdvancedCalculation", () => {
     ["percentage", "", "150", "First input is required"],
     ["percentage", "20", "", "Second input is required"],
     ["exponentiation", "2", "", "Second input is required"],
-    ["exponentiation", "2", "1.5", "Exponent must be an integer"],
-    ["exponentiation", "0", "-1", "Result is too large to be represented"],
-    [
-      "exponentiation",
-      "999999999",
-      "999999999",
-      "Result is too large to be represented",
-    ],
   ] as const)("rejects %s with %j and %j", (operation, first, second, want) => {
     const state = stateWith({ operation, first, second });
 
@@ -126,6 +126,16 @@ describe("prepareBinaryAdvancedCalculation", () => {
       ok: false,
       error: want,
     });
+  });
+
+  it.each([
+    ["2", "1.5"],
+    ["0", "-1"],
+    ["999999999", "999999999"],
+  ])("leaves exponentiation of %j by %j to the backend", (first, second) => {
+    const state = stateWith({ operation: "exponentiation", first, second });
+
+    expect(prepareBinaryAdvancedCalculation(state).ok).toBe(true);
   });
 
   it("applies percentage rules to percentage only", () => {

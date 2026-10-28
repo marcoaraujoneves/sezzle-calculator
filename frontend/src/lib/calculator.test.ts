@@ -90,43 +90,49 @@ describe("appendDigit", () => {
     expect(typeDigits(INITIAL_STATE, "007").first).toBe("007");
   });
 
-  it("accepts the ninth digit", () => {
-    const state = typeDigits(INITIAL_STATE, "12345678");
+  it("accepts the fifteenth digit", () => {
+    const state = typeDigits(INITIAL_STATE, "12345678901234");
 
     expect(canAppendDigit(state)).toBe(true);
-    expect(appendDigit(state, "9").first).toBe("123456789");
+    expect(appendDigit(state, "5").first).toBe("123456789012345");
   });
 
-  it("ignores digits once nine are entered", () => {
-    const full = typeDigits(INITIAL_STATE, "1234567890");
+  it("ignores digits once fifteen are entered", () => {
+    const full = typeDigits(INITIAL_STATE, "1234567890123456");
 
-    expect(full.first).toBe("123456789");
+    expect(full.first).toBe("123456789012345");
     expect(canAppendDigit(full)).toBe(false);
   });
 
   it("returns the very same state when the limit blocks the digit", () => {
-    const full = typeDigits(INITIAL_STATE, "123456789");
+    const full = typeDigits(INITIAL_STATE, "123456789012345");
 
     expect(appendDigit(full, "0")).toBe(full);
   });
 
   it("does not count the decimal point towards the limit", () => {
     const withDecimal = appendDecimal(typeDigits(INITIAL_STATE, "1"));
-    const state = typeDigits(withDecimal, "23456789");
+    const state = typeDigits(withDecimal, "23456789012345");
 
-    expect(state.first).toBe("1.23456789");
+    expect(state.first).toBe("1.23456789012345");
     expect(canAppendDigit(state)).toBe(false);
   });
 
   it("limits the second input on its own", () => {
     const afterFirst = selectOperation(
-      typeDigits(INITIAL_STATE, "123456789"),
+      typeDigits(INITIAL_STATE, "123456789012345"),
       "addition",
     );
-    const state = typeDigits(afterFirst, "1234567890");
+    const state = typeDigits(afterFirst, "1234567890123456");
 
-    expect(state.first).toBe("123456789");
-    expect(state.second).toBe("123456789");
+    expect(state.first).toBe("123456789012345");
+    expect(state.second).toBe("123456789012345");
+  });
+
+  it("starts a new input after a long answer instead of limiting it", () => {
+    const state = appendDigit(answerState(0.1 + 0.2), "5");
+
+    expect(state.first).toBe("5");
   });
 });
 
@@ -143,10 +149,10 @@ describe("appendDecimal", () => {
   });
 
   it("is still available when the digit limit is reached", () => {
-    const full = typeDigits(INITIAL_STATE, "123456789");
+    const full = typeDigits(INITIAL_STATE, "123456789012345");
 
     expect(canAppendDecimal(full)).toBe(true);
-    expect(appendDecimal(full).first).toBe("123456789.");
+    expect(appendDecimal(full).first).toBe("123456789012345.");
   });
 
   it("goes after a sign", () => {
@@ -340,9 +346,9 @@ describe("toggleSign", () => {
   });
 
   it("does not count the sign toward the digit limit", () => {
-    const state = typeDigits(toggleSign(INITIAL_STATE), "123456789");
+    const state = typeDigits(toggleSign(INITIAL_STATE), "123456789012345");
 
-    expect(state.first).toBe("-123456789");
+    expect(state.first).toBe("-123456789012345");
     expect(canAppendDigit(state)).toBe(false);
   });
 

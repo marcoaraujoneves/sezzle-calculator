@@ -20,6 +20,15 @@ describe("operandSchema", () => {
     ["1.23456789", 1.23456789],
     ["-12345678.9", -12345678.9],
     [".12345678", 0.12345678],
+    ["123456789012345", 123456789012345],
+    ["0.30000000000000004", 0.1 + 0.2],
+    ["999999998000000000", 999999998000000000],
+    ["1e+21", 1e21],
+    ["-1e+21", -1e21],
+    ["1e-7", 1e-7],
+    ["1.5e+300", 1.5e300],
+    ["1.7976931348623157e+308", Number.MAX_VALUE],
+    ["5e-324", Number.MIN_VALUE],
   ])("accepts %j as %d", (input, want) => {
     expect(schema.parse(input)).toBe(want);
   });
@@ -35,20 +44,14 @@ describe("operandSchema", () => {
     ["a comma separator", "1,5", "Operand is not a valid number"],
     ["leading whitespace", " 5", "Operand is not a valid number"],
     ["trailing whitespace", "5 ", "Operand is not a valid number"],
-    ["exponent notation", "1e+21", "Operand is not a valid number"],
+    ["an exponent marker alone", "e5", "Operand is not a valid number"],
+    ["an exponent without digits", "1e", "Operand is not a valid number"],
+    ["an exponent with only a sign", "1e+", "Operand is not a valid number"],
+    ["a decimal exponent", "1e1.5", "Operand is not a valid number"],
+    ["a capital exponent marker", "1E5", "Operand is not a valid number"],
+    ["Infinity", "Infinity", "Operand is not a valid number"],
+    ["NaN", "NaN", "Operand is not a valid number"],
     ["letters", "abc", "Operand is not a valid number"],
-    ["ten digits", "1234567890", "Operand must have at most 9 digits"],
-    [
-      "a signed ten digits",
-      "-1234567890",
-      "Operand must have at most 9 digits",
-    ],
-    [
-      "ten digits split by a decimal point",
-      "1234567.890",
-      "Operand must have at most 9 digits",
-    ],
-    ["ten decimals", "0.123456789", "Operand must have at most 9 digits"],
   ])("rejects %s", (_name, input, want) => {
     const result = schema.safeParse(input);
 

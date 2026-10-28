@@ -56,24 +56,34 @@ describe("prepareBasicCalculation", () => {
     ["an empty first input", "", "2", "First input is required"],
     ["an empty second input", "1", "", "Second input is required"],
     ["a lone sign", "1", "-", "Second input is not a valid number"],
-    [
-      "a first input over the digit limit",
-      "1234567890",
-      "1",
-      "First input must have at most 9 digits",
-    ],
+    ["a lone decimal point", ".", "2", "First input is not a valid number"],
   ])("reports %s", (_name, first, second, want) => {
     const state = stateWith({ operation: "addition", first, second });
 
     expect(prepareBasicCalculation(state)).toEqual({ ok: false, error: want });
   });
 
-  it.each(["0", "0.", "0.00", "-0"])("rejects dividing by %j", (second) => {
-    const state = stateWith({ operation: "division", first: "1", second });
+  it.each(["0", "0.", "0.00", "-0"])(
+    "leaves dividing by %j to the backend",
+    (second) => {
+      const state = stateWith({ operation: "division", first: "1", second });
 
-    expect(prepareBasicCalculation(state)).toEqual({
-      ok: false,
-      error: "Division by zero is not allowed",
+      expect(prepareBasicCalculation(state).ok).toBe(true);
+    },
+  );
+
+  it.each([
+    ["0.30000000000000004", 0.30000000000000004],
+    ["999999998000000000", 999999998000000000],
+    ["1e+21", 1e21],
+    ["-1.7976931348623157e+308", -Number.MAX_VALUE],
+    ["5e-324", Number.MIN_VALUE],
+  ])("sends the previous answer %j as it is", (first, want) => {
+    const state = stateWith({ operation: "addition", first, second: "1" });
+
+    expect(prepareBasicCalculation(state)).toMatchObject({
+      ok: true,
+      payload: { first_input: want },
     });
   });
 
