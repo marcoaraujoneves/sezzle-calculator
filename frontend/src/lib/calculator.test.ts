@@ -1,34 +1,83 @@
 import { describe, expect, it } from "vitest";
+import { INITIAL_STATE } from "@/constants/calculator";
+import type { CalculatorState } from "@/types/calculator";
 import {
-  INITIAL_STATE,
+  activeInput,
   answerState,
   appendDecimal,
   appendDigit,
   canAppendDecimal,
   canAppendDigit,
-  countDigits,
-  formatExpression,
-  formatNumber,
   removeLastDigit,
   selectOperation,
+  toCalculationInput,
   toggleSign,
-  type CalculatorState,
 } from "./calculator";
 
 function typeDigits(state: CalculatorState, digits: string): CalculatorState {
   return [...digits].reduce(appendDigit, state);
 }
 
-describe("countDigits", () => {
+describe("answerState", () => {
   it.each([
-    ["", 0],
-    ["123", 3],
-    ["1.5", 2],
-    ["0.", 1],
-    ["-12.5", 3],
-    ["-", 0],
-  ])("counts %j as %i digits", (value, want) => {
-    expect(countDigits(value)).toBe(want);
+    [15, "15"],
+    [-5, "-5"],
+    [0.1, "0.1"],
+    [0, "0"],
+    [1e21, "1e+21"],
+    [1e-7, "1e-7"],
+  ])("stores %d as the raw answer %j", (result, want) => {
+    expect(answerState(result)).toEqual({
+      ...INITIAL_STATE,
+      first: want,
+      answered: true,
+    });
+  });
+});
+
+describe("activeInput", () => {
+  it("is the first input until an operation is selected", () => {
+    expect(activeInput(typeDigits(INITIAL_STATE, "12"))).toBe("12");
+  });
+
+  it("is the second input once an operation is selected", () => {
+    const state = typeDigits(
+      selectOperation(typeDigits(INITIAL_STATE, "12"), "addition"),
+      "3",
+    );
+
+    expect(activeInput(state)).toBe("3");
+  });
+
+  it("is empty on a fresh calculator", () => {
+    expect(activeInput(INITIAL_STATE)).toBe("");
+  });
+});
+
+describe("toCalculationInput", () => {
+  it("maps the state onto the backend field names", () => {
+    const state = typeDigits(
+      selectOperation(typeDigits(INITIAL_STATE, "12"), "division"),
+      "4",
+    );
+
+    expect(toCalculationInput(state)).toEqual({
+      operation: "division",
+      first_input: "12",
+      second_input: "4",
+    });
+  });
+
+  it("keeps a missing operation as null", () => {
+    expect(toCalculationInput(INITIAL_STATE)).toEqual({
+      operation: null,
+      first_input: "",
+      second_input: "",
+    });
+  });
+
+  it("keeps the raw answer as the first input", () => {
+    expect(toCalculationInput(answerState(-2.5)).first_input).toBe("-2.5");
   });
 });
 
@@ -37,32 +86,81 @@ describe("appendDigit", () => {
     expect(typeDigits(INITIAL_STATE, "123").first).toBe("123");
   });
 
+  it("keeps leading zeros as typed", () => {
+    expect(typeDigits(INITIAL_STATE, "007").first).toBe("007");
+  });
+
+  it("accepts the ninth digit", () => {
+    const state = typeDigits(INITIAL_STATE, "12345678");
+
+    expect(canAppendDigit(state)).toBe(true);
+    expect(appendDigit(state, "9").first).toBe("123456789");
+  });
+
   it("ignores digits once nine are entered", () => {
     const full = typeDigits(INITIAL_STATE, "1234567890");
+
     expect(full.first).toBe("123456789");
     expect(canAppendDigit(full)).toBe(false);
   });
 
+  it("returns the very same state when the limit blocks the digit", () => {
+    const full = typeDigits(INITIAL_STATE, "123456789");
+
+    expect(appendDigit(full, "0")).toBe(full);
+  });
+
   it("does not count the decimal point towards the limit", () => {
-    const state = typeDigits(
-      appendDecimal(typeDigits(INITIAL_STATE, "1")),
-      "23456789",
-    );
+    const withDecimal = appendDecimal(typeDigits(INITIAL_STATE, "1"));
+    const state = typeDigits(withDecimal, "23456789");
+
     expect(state.first).toBe("1.23456789");
     expect(canAppendDigit(state)).toBe(false);
+  });
+
+  it("limits the second input on its own", () => {
+    const afterFirst = selectOperation(
+      typeDigits(INITIAL_STATE, "123456789"),
+      "addition",
+    );
+    const state = typeDigits(afterFirst, "1234567890");
+
+    expect(state.first).toBe("123456789");
+    expect(state.second).toBe("123456789");
   });
 });
 
 describe("appendDecimal", () => {
   it("accepts only one decimal point per input", () => {
     const state = appendDecimal(appendDecimal(typeDigits(INITIAL_STATE, "1")));
+
     expect(state.first).toBe("1.");
     expect(canAppendDecimal(state)).toBe(false);
   });
 
+  it("starts a fraction from an empty input", () => {
+    expect(typeDigits(appendDecimal(INITIAL_STATE), "5").first).toBe(".5");
+  });
+
   it("is still available when the digit limit is reached", () => {
     const full = typeDigits(INITIAL_STATE, "123456789");
+
     expect(canAppendDecimal(full)).toBe(true);
+    expect(appendDecimal(full).first).toBe("123456789.");
+  });
+
+  it("goes after a sign", () => {
+    expect(appendDecimal(toggleSign(INITIAL_STATE)).first).toBe("-.");
+  });
+
+  it("is allowed again in the second input", () => {
+    const afterFirst = selectOperation(
+      appendDecimal(typeDigits(INITIAL_STATE, "1")),
+      "addition",
+    );
+
+    expect(canAppendDecimal(afterFirst)).toBe(true);
+    expect(appendDecimal(afterFirst).second).toBe(".");
   });
 });
 
@@ -72,6 +170,7 @@ describe("selectOperation", () => {
       selectOperation(typeDigits(INITIAL_STATE, "12"), "addition"),
       "34",
     );
+
     expect(state).toEqual({
       first: "12",
       second: "34",
@@ -82,15 +181,29 @@ describe("selectOperation", () => {
 
   it("defaults an empty first input to 0", () => {
     const state = selectOperation(INITIAL_STATE, "addition");
+
     expect(state.first).toBe("0");
-    expect(formatExpression(state)).toBe("0 +");
+    expect(state.operation).toBe("addition");
   });
+
+  it.each([
+    "addition",
+    "multiplication",
+    "division",
+    "exponentiation",
+  ] as const)(
+    "does not treat %s on an empty calculator as a sign",
+    (operation) => {
+      expect(selectOperation(INITIAL_STATE, operation).first).toBe("0");
+    },
+  );
 
   it("treats minus on an empty first input as a sign", () => {
     const state = typeDigits(
       selectOperation(INITIAL_STATE, "subtraction"),
       "25",
     );
+
     expect(state).toEqual({ ...INITIAL_STATE, first: "-25" });
   });
 
@@ -99,12 +212,14 @@ describe("selectOperation", () => {
       typeDigits(INITIAL_STATE, "5"),
       "subtraction",
     );
+
     expect(state.operation).toBe("subtraction");
     expect(state.first).toBe("5");
   });
 
   it("treats minus after an answer as subtraction", () => {
     const state = selectOperation(answerState(7), "subtraction");
+
     expect(state.operation).toBe("subtraction");
     expect(state.first).toBe("7");
   });
@@ -118,8 +233,20 @@ describe("selectOperation", () => {
       selectOperation(afterOperator, "subtraction"),
       "3",
     );
+
     expect(state.operation).toBe("exponentiation");
     expect(state.second).toBe("-3");
+  });
+
+  it("replaces the operator with minus once the second input has digits", () => {
+    const afterSecond = typeDigits(
+      selectOperation(typeDigits(INITIAL_STATE, "2"), "addition"),
+      "3",
+    );
+    const state = selectOperation(afterSecond, "subtraction");
+
+    expect(state.operation).toBe("subtraction");
+    expect(state.second).toBe("3");
   });
 
   it("still replaces the operator with other operations", () => {
@@ -127,6 +254,7 @@ describe("selectOperation", () => {
       typeDigits(INITIAL_STATE, "2"),
       "addition",
     );
+
     expect(selectOperation(afterOperator, "division").operation).toBe(
       "division",
     );
@@ -135,6 +263,7 @@ describe("selectOperation", () => {
   it("starts the second input with its own digit and decimal allowance", () => {
     const afterFirst = appendDecimal(typeDigits(INITIAL_STATE, "123456789"));
     const state = selectOperation(afterFirst, "division");
+
     expect(canAppendDigit(state)).toBe(true);
     expect(canAppendDecimal(state)).toBe(true);
   });
@@ -154,8 +283,13 @@ describe("after an answer", () => {
 
   it("keeps digits and decimal enabled even if the answer is full", () => {
     const state = answerState(123456789.5);
+
     expect(canAppendDigit(state)).toBe(true);
     expect(canAppendDecimal(state)).toBe(true);
+  });
+
+  it("keeps digits enabled for an answer in exponent notation", () => {
+    expect(canAppendDigit(answerState(1e21))).toBe(true);
   });
 
   it("uses the answer as the first input when an operation follows", () => {
@@ -163,6 +297,7 @@ describe("after an answer", () => {
       selectOperation(answerState(15), "subtraction"),
       "5",
     );
+
     expect(state).toEqual({
       first: "15",
       second: "5",
@@ -175,12 +310,20 @@ describe("after an answer", () => {
 describe("toggleSign", () => {
   it("negates the first input and back", () => {
     const negative = toggleSign(typeDigits(INITIAL_STATE, "5"));
+
     expect(negative.first).toBe("-5");
     expect(toggleSign(negative).first).toBe("5");
   });
 
+  it("negates a decimal input", () => {
+    const state = toggleSign(appendDecimal(typeDigits(INITIAL_STATE, "5")));
+
+    expect(state.first).toBe("-5.");
+  });
+
   it("starts a negative number from an empty input", () => {
     const state = typeDigits(toggleSign(INITIAL_STATE), "5");
+
     expect(state.first).toBe("-5");
   });
 
@@ -191,23 +334,21 @@ describe("toggleSign", () => {
         "3",
       ),
     );
+
     expect(state.first).toBe("8");
     expect(state.second).toBe("-3");
   });
 
   it("does not count the sign toward the digit limit", () => {
     const state = typeDigits(toggleSign(INITIAL_STATE), "123456789");
+
     expect(state.first).toBe("-123456789");
     expect(canAppendDigit(state)).toBe(false);
   });
 
   it("negates an answer and keeps it reusable", () => {
-    const state = toggleSign(answerState(5));
-    expect(state).toEqual(answerState(-5));
-  });
-
-  it("backspace removes a lone sign", () => {
-    expect(removeLastDigit(toggleSign(INITIAL_STATE)).first).toBe("");
+    expect(toggleSign(answerState(5))).toEqual(answerState(-5));
+    expect(toggleSign(answerState(-5))).toEqual(answerState(5));
   });
 });
 
@@ -220,12 +361,18 @@ describe("removeLastDigit", () => {
     const state = removeLastDigit(
       appendDecimal(typeDigits(INITIAL_STATE, "1")),
     );
+
     expect(state.first).toBe("1");
     expect(canAppendDecimal(state)).toBe(true);
   });
 
+  it("removes a lone sign", () => {
+    expect(removeLastDigit(toggleSign(INITIAL_STATE)).first).toBe("");
+  });
+
   it("re-enables digits after the limit was reached", () => {
     const state = removeLastDigit(typeDigits(INITIAL_STATE, "123456789"));
+
     expect(canAppendDigit(state)).toBe(true);
   });
 
@@ -234,15 +381,26 @@ describe("removeLastDigit", () => {
       selectOperation(typeDigits(INITIAL_STATE, "12"), "addition"),
       "34",
     );
+
     expect(removeLastDigit(state).second).toBe("3");
   });
 
   it("drops the operation when the second input is empty", () => {
     const state = selectOperation(typeDigits(INITIAL_STATE, "12"), "addition");
-    expect(removeLastDigit(state)).toEqual({
-      ...INITIAL_STATE,
-      first: "12",
-    });
+
+    expect(removeLastDigit(state)).toEqual({ ...INITIAL_STATE, first: "12" });
+  });
+
+  it("removes a lone sign of the second input before the operation", () => {
+    const afterOperator = selectOperation(
+      typeDigits(INITIAL_STATE, "2"),
+      "addition",
+    );
+    const signed = selectOperation(afterOperator, "subtraction");
+    const state = removeLastDigit(signed);
+
+    expect(state.second).toBe("");
+    expect(state.operation).toBe("addition");
   });
 
   it("resets after an answer", () => {
@@ -251,86 +409,5 @@ describe("removeLastDigit", () => {
 
   it("does nothing on an empty calculator", () => {
     expect(removeLastDigit(INITIAL_STATE)).toEqual(INITIAL_STATE);
-  });
-});
-
-describe("formatNumber", () => {
-  it.each([
-    ["", ""],
-    ["-", "-"],
-    ["2.", "2."],
-    ["0.50", "0.50"],
-    ["123456789", "123456789"],
-    ["-12.5", "-12.5"],
-  ])("leaves %j as typed", (raw, want) => {
-    expect(formatNumber(raw)).toBe(want);
-  });
-
-  it.each([
-    ["10000000000", "10 × 10^9"],
-    ["-10000000000", "-10 × 10^9"],
-    ["1000000000", "1 × 10^9"],
-    ["123456789012", "123.456 × 10^9"],
-    ["12345678901234", "12.345 × 10^12"],
-    ["12000000000000", "12 × 10^12"],
-    ["12000900000000", "12 × 10^12"],
-    ["1e+21", "1 × 10^21"],
-    ["1.5e+300", "1.5 × 10^300"],
-  ])("writes the large answer %j in scientific notation", (raw, want) => {
-    expect(formatNumber(raw)).toBe(want);
-  });
-
-  it.each([
-    ["9.12345678912", "9.12345678"],
-    ["-9.12345678912", "-9.12345678"],
-    ["123456789.987", "123456789"],
-    ["12345.6789123", "12345.6789"],
-    ["0.30000000000000004", "0.3"],
-    ["1.00000000012", "1"],
-    ["0.000012345678912", "0.00001234"],
-    ["1e-7", "0.0000001"],
-  ])("truncates the long answer %j to %j", (raw, want) => {
-    expect(formatNumber(raw)).toBe(want);
-  });
-
-  it.each([
-    ["1e-12", "1 × 10^-12"],
-    ["1.5e-10", "150 × 10^-12"],
-    ["0.0000000001234", "123.4 × 10^-12"],
-    ["0.00000000012345678", "123.456 × 10^-12"],
-  ])("keeps the tiny answer %j in scientific notation", (raw, want) => {
-    expect(formatNumber(raw)).toBe(want);
-  });
-});
-
-describe("formatExpression", () => {
-  it("shortens a long answer used as the first input", () => {
-    const state = selectOperation(answerState(10000000000), "addition");
-    expect(formatExpression(state)).toBe("10 × 10^9 +");
-  });
-
-  it("shows the percentage symbol", () => {
-    const state = selectOperation(
-      typeDigits(INITIAL_STATE, "20"),
-      "percentage",
-    );
-    expect(formatExpression(state)).toBe("20 %");
-  });
-
-  it("shows the exponentiation symbol", () => {
-    const state = selectOperation(
-      typeDigits(INITIAL_STATE, "2"),
-      "exponentiation",
-    );
-    expect(formatExpression(state)).toBe("2 ^");
-  });
-
-  it("is empty until an operation is selected", () => {
-    expect(formatExpression(typeDigits(INITIAL_STATE, "12"))).toBe("");
-  });
-
-  it("shows the first input and the operator symbol", () => {
-    const state = selectOperation(typeDigits(INITIAL_STATE, "12"), "division");
-    expect(formatExpression(state)).toBe("12 ÷");
   });
 });

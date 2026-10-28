@@ -1,13 +1,14 @@
+import { ADVANCED_CALCULATIONS_ENDPOINT } from "@/constants/config";
+import { postCalculation } from "@/services/post-calculation";
 import type {
   AdvancedCalculationPayload,
   ExponentiationPayload,
   PercentagePayload,
-} from "@/lib/schemas";
-import { postCalculation } from "@/services/post-calculation";
+} from "@/types/payloads";
 
 export function calculateAdvanced(
   payload:
     AdvancedCalculationPayload | ExponentiationPayload | PercentagePayload,
 ): Promise<number> {
-  return postCalculation("advanced-calculations", payload);
+  return postCalculation(ADVANCED_CALCULATIONS_ENDPOINT, payload);
 }

@@ -1,11 +1,7 @@
+import { API_BASE_URL } from "@/constants/config";
 import { httpErrorMessage } from "@/lib/errors";
 import { joinUrl } from "@/lib/url";
-import { API_BASE_URL } from "@/services/config";
-
-interface CalculationResponse {
-  result?: number;
-  error?: string;
-}
+import type { CalculationResponse } from "@/types/api";
 
 export async function postCalculation(
   endpoint: string,
@@ -18,9 +14,11 @@ export async function postCalculation(
   });
 
   const body: CalculationResponse = await response.json().catch(() => ({}));
+  const { result, error } = body;
 
-  if (!response.ok || body.result === undefined) {
-    throw new Error(body.error ?? httpErrorMessage(endpoint, response.status));
+  if (!response.ok || result === undefined) {
+    throw new Error(error ?? httpErrorMessage(endpoint, response.status));
   }
-  return body.result;
+
+  return result;
 }

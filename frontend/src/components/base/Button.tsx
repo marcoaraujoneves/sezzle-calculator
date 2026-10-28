@@ -1,6 +1,6 @@
+import { VARIANT_CLASSES } from "@/constants/button";
 import { cn } from "@/lib/utils";
-
-export type ButtonVariant = "digit" | "operator" | "function" | "equals";
+import type { ButtonVariant } from "@/types/button";
 
 export interface ButtonProps {
   /** Text shown on the key, e.g. "÷". */
@@ -13,13 +13,6 @@ export interface ButtonProps {
   disabled?: boolean;
   onClick?: () => void;
 }
-
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  digit: "bg-white text-neutral-900 hover:bg-neutral-100",
-  operator: "bg-amber-500 text-white hover:bg-amber-400",
-  function: "bg-neutral-300 text-neutral-900 hover:bg-neutral-200",
-  equals: "bg-emerald-600 text-white hover:bg-emerald-500",
-};
 
 export function Button({
   label,

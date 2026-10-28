@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   validateAdvancedCalculation,
-  validateBasicCalculation,
   validateExponentiation,
   validatePercentage,
-} from "./schemas";
+} from "./advanced-calculations";
 
 describe("validateAdvancedCalculation", () => {
   it.each([
     ["16", 16],
     ["2.25", 2.25],
     [".25", 0.25],
+    ["0.0001", 0.0001],
     ["0", 0],
+    ["-0", -0],
     ["123456789", 123456789],
-  ])("accepts %j", (input, want) => {
+  ])("accepts the square root of %j", (input, want) => {
     expect(
       validateAdvancedCalculation({
         operation: "square_root",
@@ -27,15 +28,22 @@ describe("validateAdvancedCalculation", () => {
 
   it.each([
     ["no operation", null, "4", "Select an operation"],
-    ["unknown operation", "addition", "4", "Select an operation"],
-    ["empty input", "square_root", "", "First input is required"],
+    ["a basic operation", "addition", "4", "Select an operation"],
+    ["a binary advanced operation", "percentage", "4", "Select an operation"],
+    ["an empty input", "square_root", "", "First input is required"],
     [
-      "lone decimal point",
+      "a lone decimal point",
       "square_root",
       ".",
       "First input is not a valid number",
     ],
-    ["lone sign", "square_root", "-", "First input is not a valid number"],
+    ["a lone sign", "square_root", "-", "First input is not a valid number"],
+    [
+      "exponent notation",
+      "square_root",
+      "1e+21",
+      "First input is not a valid number",
+    ],
     [
       "ten digits",
       "square_root",
@@ -43,15 +51,21 @@ describe("validateAdvancedCalculation", () => {
       "First input must have at most 9 digits",
     ],
     [
-      "negative number",
+      "a negative number",
       "square_root",
       "-4",
       "Square root of a negative number is not allowed",
     ],
     [
-      "negative decimal",
+      "a negative decimal",
       "square_root",
       "-0.5",
+      "Square root of a negative number is not allowed",
+    ],
+    [
+      "the smallest negative decimal",
+      "square_root",
+      "-0.00000001",
       "Square root of a negative number is not allowed",
     ],
   ])("rejects %s", (_name, operation, first, want) => {
@@ -65,10 +79,17 @@ describe("validateExponentiation", () => {
   it.each([
     ["2", "10", 2, 10],
     ["-3", "2", -3, 2],
+    ["-2", "3", -2, 3],
     ["2.5", "2", 2.5, 2],
     ["2", "-2", 2, -2],
     ["7", "0", 7, 0],
+    ["0", "0", 0, 0],
+    ["0", "5", 0, 5],
+    ["1", "999999999", 1, 999999999],
     ["5", "2.", 5, 2],
+    ["5", "2.0", 5, 2],
+    ["10", "308", 10, 308],
+    ["2", "1023", 2, 1023],
   ])("accepts %j to the power %j", (first, second, wantFirst, wantSecond) => {
     expect(
       validateExponentiation({
@@ -89,41 +110,82 @@ describe("validateExponentiation", () => {
   it.each([
     ["no operation", null, "2", "3", "Select an operation"],
     ["another operation", "addition", "2", "3", "Select an operation"],
-    ["empty base", "exponentiation", "", "3", "First input is required"],
-    ["empty exponent", "exponentiation", "2", "", "Second input is required"],
+    ["an empty base", "exponentiation", "", "3", "First input is required"],
     [
-      "lone sign as exponent",
+      "an empty exponent",
+      "exponentiation",
+      "2",
+      "",
+      "Second input is required",
+    ],
+    [
+      "a lone sign as exponent",
       "exponentiation",
       "2",
       "-",
       "Second input is not a valid number",
     ],
     [
-      "ten digit exponent",
+      "a ten digit base",
+      "exponentiation",
+      "1234567890",
+      "2",
+      "First input must have at most 9 digits",
+    ],
+    [
+      "a ten digit exponent",
       "exponentiation",
       "2",
       "1234567890",
       "Second input must have at most 9 digits",
     ],
     [
-      "decimal exponent",
+      "a decimal exponent",
       "exponentiation",
       "2",
       "1.5",
       "Exponent must be an integer",
     ],
     [
-      "negative decimal exponent",
+      "a negative decimal exponent",
       "exponentiation",
       "2",
       "-0.5",
       "Exponent must be an integer",
     ],
     [
-      "overflow",
+      "a tiny decimal exponent",
+      "exponentiation",
+      "2",
+      "0.000001",
+      "Exponent must be an integer",
+    ],
+    [
+      "an overflowing positive result",
       "exponentiation",
       "999999999",
       "999999999",
+      "Result is too large to be represented",
+    ],
+    [
+      "an overflowing negative result",
+      "exponentiation",
+      "-999999999",
+      "999999999",
+      "Result is too large to be represented",
+    ],
+    [
+      "the first power past the float limit",
+      "exponentiation",
+      "10",
+      "309",
+      "Result is too large to be represented",
+    ],
+    [
+      "two to the 1024th",
+      "exponentiation",
+      "2",
+      "1024",
       "Result is too large to be represented",
     ],
     [
@@ -148,10 +210,14 @@ describe("validatePercentage", () => {
   it.each([
     ["20", "150", 20, 150],
     ["12.5", "80", 12.5, 80],
+    ["33.333333", "3", 33.333333, 3],
     ["-10", "80", -10, 80],
     ["150", "-2", 150, -2],
+    ["-5", "-5", -5, -5],
     ["0", "0", 0, 0],
+    ["0.5", ".5", 0.5, 0.5],
     ["5", "2.", 5, 2],
+    ["123456789", "123456789", 123456789, 123456789],
   ])("accepts %j percent of %j", (first, second, wantFirst, wantSecond) => {
     expect(
       validatePercentage({
@@ -172,24 +238,32 @@ describe("validatePercentage", () => {
   it.each([
     ["no operation", null, "20", "150", "Select an operation"],
     ["another operation", "addition", "20", "150", "Select an operation"],
-    ["empty rate", "percentage", "", "150", "First input is required"],
-    ["empty base", "percentage", "20", "", "Second input is required"],
+    ["exponentiation", "exponentiation", "20", "150", "Select an operation"],
+    ["an empty rate", "percentage", "", "150", "First input is required"],
+    ["an empty base", "percentage", "20", "", "Second input is required"],
     [
-      "lone decimal point as base",
+      "a lone decimal point as base",
       "percentage",
       "20",
       ".",
       "Second input is not a valid number",
     ],
     [
-      "ten digit rate",
+      "a lone sign as rate",
+      "percentage",
+      "-",
+      "150",
+      "First input is not a valid number",
+    ],
+    [
+      "a ten digit rate",
       "percentage",
       "1234567890",
       "150",
       "First input must have at most 9 digits",
     ],
     [
-      "ten digit base",
+      "a ten digit base",
       "percentage",
       "20",
       "1234567890",
@@ -203,110 +277,5 @@ describe("validatePercentage", () => {
         second_input: second,
       }),
     ).toEqual({ ok: false, error: want });
-  });
-});
-
-describe("validateBasicCalculation", () => {
-  it("returns the payload with numeric operands", () => {
-    expect(
-      validateBasicCalculation({
-        operation: "addition",
-        first_input: "12.5",
-        second_input: "3",
-      }),
-    ).toEqual({
-      ok: true,
-      payload: { operation: "addition", first_input: 12.5, second_input: 3 },
-    });
-  });
-
-  it.each([
-    ["-5", -5],
-    [".5", 0.5],
-    ["5.", 5],
-    ["123456789", 123456789],
-    ["1.23456789", 1.23456789],
-    ["-12345678.9", -12345678.9],
-  ])("accepts %j", (input, want) => {
-    const result = validateBasicCalculation({
-      operation: "subtraction",
-      first_input: input,
-      second_input: "1",
-    });
-    expect(result).toMatchObject({ ok: true, payload: { first_input: want } });
-  });
-
-  it.each([
-    ["no operation", null, "1", "2", "Select an operation"],
-    ["unknown operation", "power", "1", "2", "Select an operation"],
-    ["empty first input", "addition", "", "2", "First input is required"],
-    ["empty second input", "addition", "1", "", "Second input is required"],
-    [
-      "lone decimal point",
-      "addition",
-      ".",
-      "2",
-      "First input is not a valid number",
-    ],
-    [
-      "exponent notation",
-      "addition",
-      "1e+21",
-      "2",
-      "First input is not a valid number",
-    ],
-    [
-      "ten digits",
-      "addition",
-      "1",
-      "1234567890",
-      "Second input must have at most 9 digits",
-    ],
-    [
-      "ten digits with decimal",
-      "addition",
-      "1234567.890",
-      "1",
-      "First input must have at most 9 digits",
-    ],
-    [
-      "division by zero",
-      "division",
-      "1",
-      "0",
-      "Division by zero is not allowed",
-    ],
-    [
-      "division by 0.0",
-      "division",
-      "1",
-      "0.0",
-      "Division by zero is not allowed",
-    ],
-  ])("rejects %s", (_name, operation, first, second, want) => {
-    expect(
-      validateBasicCalculation({
-        operation,
-        first_input: first,
-        second_input: second,
-      }),
-    ).toEqual({ ok: false, error: want });
-  });
-
-  it("allows zero as a dividend and as an operand of other operations", () => {
-    expect(
-      validateBasicCalculation({
-        operation: "division",
-        first_input: "0",
-        second_input: "5",
-      }).ok,
-    ).toBe(true);
-    expect(
-      validateBasicCalculation({
-        operation: "multiplication",
-        first_input: "5",
-        second_input: "0",
-      }).ok,
-    ).toBe(true);
   });
 });
