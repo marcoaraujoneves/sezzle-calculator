@@ -9,13 +9,13 @@ import (
 	"sezzle-calculator/internal/middleware"
 )
 
+const defaultPort = "8080"
+
 func main() {
-	addr := ":8080"
-	if port := os.Getenv("PORT"); port != "" {
-		addr = ":" + port
-	}
+	listenAddress := ":" + valueOrDefault(os.Getenv("PORT"), defaultPort)
 
 	mux := http.NewServeMux()
+
 	// Set when the SPA runs on another origin, e.g. the Vite dev server.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 	api := middleware.WithCORS(allowedOrigin, calculator.NewHandler())
@@ -24,10 +24,19 @@ func main() {
 	mux.Handle("/advanced-calculations", api)
 
 	// The container ships the built SPA next to the binary so a single process serves both.
-	if dir := os.Getenv("STATIC_DIR"); dir != "" {
-		mux.Handle("/", http.FileServer(http.Dir(dir)))
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir != "" {
+		mux.Handle("/", http.FileServer(http.Dir(staticDir)))
 	}
 
-	log.Printf("listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Printf("listening on %s", listenAddress)
+	log.Fatal(http.ListenAndServe(listenAddress, mux))
+}
+
+func valueOrDefault(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }

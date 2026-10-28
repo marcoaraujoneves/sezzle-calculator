@@ -41,3 +41,13 @@ These will require a different validation for each:
 - Percentage: Don't have restrictions
 
 I started with the square root to validate the new endpoint, and then extended to the exponentiation, and then percentage.
+
+## Hardening
+
+The first point was gracefully handling numbers that contained more than 9 digits, truncating decimals, and using the scientific notation for larger numbers.
+
+The next, improving the code quality. On a greenfield project, the model output is generally not good in terms of practices, structure, separation of concerns, etc. We can solve this by both enforcing with CLAUDE.md and skills for writing the code, which can be great if we already have the shape in mind or want to follow some standard, or by just adding minimal guidance upfront and then steering the agent towards a better shape once we have the complete functionality, so we already know the components, services, types, etc., that must move around, persisting the resulting shape to CLAUDE.md and skills afterwards.
+
+After completing this step for the frontend, I found a bug regarding the first point: the agent created the optimized representation of overflowing numbers, but these can't be reused as `Ans` for the backend. I'll get back to that after also refactoring the backend.
+
+The backend refacor involved, besides code quality, a hardening around the type constraints for the range of representable numbers.

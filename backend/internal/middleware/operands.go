@@ -3,72 +3,112 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
+	"sezzle-calculator/internal/httpjson"
 )
 
 const maxOperandDigits = 9
 
-// WithOperands rejects requests whose JSON body lacks any of the named operand fields, or whose
-// operands have more than 9 digits, so handlers can assume well-formed operands.
-func WithOperands(names []string, next http.Handler) http.Handler {
+var errBodyNotObject = errors.New("body must be a JSON object")
+
+// WithOperands rejects requests whose JSON body lacks any of the required operand fields, or whose
+// operands have more than 9 digits, so handlers can assume well-formed operands. Optional operands
+// may be absent or null, but when given they are held to the same rules.
+func WithOperands(requiredNames, optionalNames []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "unreadable request body")
+		body, readErr := io.ReadAll(r.Body)
+		if readErr != nil {
+			httpjson.WriteError(w, http.StatusBadRequest, "unreadable request body")
 			return
 		}
 
-		if err := validateOperands(body, names); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+		validationErr := validateOperands(body, requiredNames, optionalNames)
+		if validationErr != nil {
+			httpjson.WriteError(w, http.StatusBadRequest, validationErr.Error())
 			return
 		}
 
+		// The body was consumed above, so the next handler gets a fresh reader over the same bytes.
 		r.Body = io.NopCloser(bytes.NewReader(body))
 		next.ServeHTTP(w, r)
 	})
 }
 
-func validateOperands(body []byte, names []string) error {
+func validateOperands(body []byte, requiredNames, optionalNames []string) error {
 	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
-		return fmt.Errorf("body must be a JSON object")
+
+	unmarshalErr := json.Unmarshal(body, &fields)
+	if unmarshalErr != nil {
+		return errBodyNotObject
 	}
 
-	for _, name := range names {
-		raw, ok := fields[name]
-		if !ok {
-			return fmt.Errorf("%s is required", name)
+	for _, requiredName := range requiredNames {
+		rawOperand, isPresent := fields[requiredName]
+		if !isPresent {
+			return fmt.Errorf("%s is required", requiredName)
 		}
 
-		var n json.Number
-		if err := json.Unmarshal(raw, &n); err != nil || string(raw) == "null" || strings.HasPrefix(string(raw), `"`) {
-			return fmt.Errorf("%s must be a number", name)
+		operandErr := validateOperand(requiredName, rawOperand)
+		if operandErr != nil {
+			return operandErr
+		}
+	}
+
+	for _, optionalName := range optionalNames {
+		rawOperand, isPresent := fields[optionalName]
+		isOmitted := !isPresent || string(rawOperand) == "null"
+		if isOmitted {
+			continue
 		}
 
-		if countDigits(n.String()) > maxOperandDigits {
-			return fmt.Errorf("%s must have less than 10 digits", name)
+		operandErr := validateOperand(optionalName, rawOperand)
+		if operandErr != nil {
+			return operandErr
 		}
 	}
 
 	return nil
 }
 
-// countDigits ignores sign and decimal point: only the digits a user typed count toward the limit.
-func countDigits(literal string) int {
-	count := 0
-	for _, c := range literal {
-		if c >= '0' && c <= '9' {
-			count++
-		}
+func validateOperand(name string, rawOperand json.RawMessage) error {
+	if !isNumberLiteral(rawOperand) {
+		return fmt.Errorf("%s must be a number", name)
 	}
-	return count
+
+	if countDigits(rawOperand) > maxOperandDigits {
+		return fmt.Errorf("%s must have at most %d digits", name, maxOperandDigits)
+	}
+
+	return nil
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+// isNumberLiteral tells a JSON number from null, strings, booleans, arrays and objects. The body
+// is already valid JSON, so the first byte is enough to identify the kind of value.
+func isNumberLiteral(rawValue json.RawMessage) bool {
+	if len(rawValue) == 0 {
+		return false
+	}
+
+	firstByte := rawValue[0]
+	isDigit := firstByte >= '0' && firstByte <= '9'
+
+	return isDigit || firstByte == '-'
+}
+
+// countDigits ignores sign, decimal point and exponent marker: only the digits a user typed
+// count toward the limit.
+func countDigits(rawNumber json.RawMessage) int {
+	digitCount := 0
+
+	for _, character := range rawNumber {
+		if character >= '0' && character <= '9' {
+			digitCount++
+		}
+	}
+
+	return digitCount
 }

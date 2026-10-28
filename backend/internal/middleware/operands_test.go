@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,42 +13,89 @@ import (
 
 func TestWithOperands(t *testing.T) {
 	tests := []struct {
-		name       string
-		body       string
-		wantStatus int
+		name      string
+		body      string
+		wantError string
 	}{
-		{"both operands present", `{"first_input":1,"second_input":2}`, http.StatusOK},
-		{"extra fields pass through", `{"operation":"addition","first_input":1,"second_input":2}`, http.StatusOK},
-		{"nine digits is allowed", `{"first_input":123456789,"second_input":-987654321}`, http.StatusOK},
-		{"decimal point is not a digit", `{"first_input":12345678.9,"second_input":0.5}`, http.StatusOK},
-		{"ten digits is rejected", `{"first_input":1234567890,"second_input":1}`, http.StatusBadRequest},
-		{"ten digits in second operand", `{"first_input":1,"second_input":1234567.890}`, http.StatusBadRequest},
-		{"missing first", `{"second_input":2}`, http.StatusBadRequest},
-		{"missing second", `{"first_input":1}`, http.StatusBadRequest},
-		{"null operand", `{"first_input":null,"second_input":2}`, http.StatusBadRequest},
-		{"string operand", `{"first_input":"1","second_input":2}`, http.StatusBadRequest},
-		{"not an object", `[1,2]`, http.StatusBadRequest},
-		{"invalid json", `{`, http.StatusBadRequest},
-		{"empty body", ``, http.StatusBadRequest},
+		{"both operands present", `{"first_input":1,"second_input":2}`, ""},
+		{"extra fields pass through", `{"operation":"addition","first_input":1,"second_input":2}`, ""},
+		{"zero operands", `{"first_input":0,"second_input":0}`, ""},
+		{"negative zero", `{"first_input":-0,"second_input":0}`, ""},
+		{"whitespace around values", `{"first_input" : 1 , "second_input" :	2 }`, ""},
+		{"duplicate field uses the last value", `{"first_input":"x","first_input":1,"second_input":2}`, ""},
+
+		{"nine digits is allowed", `{"first_input":123456789,"second_input":-987654321}`, ""},
+		{"decimal point is not a digit", `{"first_input":12345678.9,"second_input":0.5}`, ""},
+		{"nine decimals is allowed", `{"first_input":0.12345678,"second_input":0.00000001}`, ""},
+		{"ten digits is rejected", `{"first_input":1234567890,"second_input":1}`, "first_input must have at most 9 digits"},
+		{"negative ten digits is rejected", `{"first_input":1,"second_input":-1234567890}`, "second_input must have at most 9 digits"},
+		{"ten digits in second operand", `{"first_input":1,"second_input":1234567.890}`, "second_input must have at most 9 digits"},
+		{"ten decimals is rejected", `{"first_input":0.123456789,"second_input":1}`, "first_input must have at most 9 digits"},
+		{"leading zeros after the point count", `{"first_input":0.000000001,"second_input":1}`, "first_input must have at most 9 digits"},
+		{"trailing zeros count", `{"first_input":1.000000000,"second_input":1}`, "first_input must have at most 9 digits"},
+
+		// Exponent notation is accepted: its digits count, so 1e308 only looks short. The calculation
+		// handlers are responsible for the overflow it can cause.
+		{"short exponent literal is allowed", `{"first_input":1e308,"second_input":2e-5}`, ""},
+		{"exponent digits count toward the limit", `{"first_input":12345678e10,"second_input":1}`, "first_input must have at most 9 digits"},
+		{"exponent with a sign and capital letter", `{"first_input":1E+5,"second_input":1}`, ""},
+
+		{"missing first", `{"second_input":2}`, "first_input is required"},
+		{"missing second", `{"first_input":1}`, "second_input is required"},
+		{"both missing reports the first", `{}`, "first_input is required"},
+		{"null body", `null`, "first_input is required"},
+		{"null operand", `{"first_input":null,"second_input":2}`, "first_input must be a number"},
+		{"string operand", `{"first_input":"1","second_input":2}`, "first_input must be a number"},
+		{"empty string operand", `{"first_input":1,"second_input":""}`, "second_input must be a number"},
+		{"boolean operand", `{"first_input":true,"second_input":2}`, "first_input must be a number"},
+		{"array operand", `{"first_input":[1],"second_input":2}`, "first_input must be a number"},
+		{"object operand", `{"first_input":1,"second_input":{"value":2}}`, "second_input must be a number"},
+
+		{"array body", `[1,2]`, "body must be a JSON object"},
+		{"string body", `"text"`, "body must be a JSON object"},
+		{"number body", `5`, "body must be a JSON object"},
+		{"invalid json", `{`, "body must be a JSON object"},
+		{"trailing garbage", `{"first_input":1,"second_input":2} x`, "body must be a JSON object"},
+		{"empty body", ``, "body must be a JSON object"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var gotBody string
+			var forwardedBody string
+			wasForwarded := false
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				b, _ := io.ReadAll(r.Body)
-				gotBody = string(b)
+				wasForwarded = true
+				bodyBytes, _ := io.ReadAll(r.Body)
+				forwardedBody = string(bodyBytes)
 			})
 
-			rec := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
-			middleware.WithOperands([]string{"first_input", "second_input"}, next).ServeHTTP(rec, req)
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			middleware.WithOperands([]string{"first_input", "second_input"}, nil, next).ServeHTTP(recorder, request)
 
-			if rec.Code != tt.wantStatus {
-				t.Fatalf("status = %d, want %d (body %q)", rec.Code, tt.wantStatus, rec.Body.String())
+			if tt.wantError == "" {
+				if recorder.Code != http.StatusOK || !wasForwarded {
+					t.Fatalf("status = %d, forwarded = %t, want the request forwarded (body %q)", recorder.Code, wasForwarded, recorder.Body.String())
+				}
+
+				if forwardedBody != tt.body {
+					t.Errorf("next handler body = %q, want %q", forwardedBody, tt.body)
+				}
+
+				return
 			}
-			if tt.wantStatus == http.StatusOK && gotBody != tt.body {
-				t.Errorf("next handler body = %q, want %q", gotBody, tt.body)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+			}
+
+			if wasForwarded {
+				t.Error("a rejected request must not reach the next handler")
+			}
+
+			wantBody := `{"error":"` + tt.wantError + `"}`
+			if gotBody := strings.TrimSpace(recorder.Body.String()); gotBody != wantBody {
+				t.Errorf("body = %q, want %q", gotBody, wantBody)
 			}
 		})
 	}
@@ -61,19 +109,103 @@ func TestWithOperandsSingleField(t *testing.T) {
 	}{
 		{"only the named operand is required", `{"first_input":9}`, http.StatusOK},
 		{"unnamed operand is ignored", `{"first_input":9,"second_input":"x"}`, http.StatusOK},
+		{"unnamed operand is not digit limited", `{"first_input":9,"second_input":1234567890123}`, http.StatusOK},
 		{"missing named operand", `{"second_input":9}`, http.StatusBadRequest},
+		{"named operand over the digit limit", `{"first_input":1234567890}`, http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-			rec := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
-			middleware.WithOperands([]string{"first_input"}, next).ServeHTTP(rec, req)
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
 
-			if rec.Code != tt.wantStatus {
-				t.Fatalf("status = %d, want %d (body %q)", rec.Code, tt.wantStatus, rec.Body.String())
+			middleware.WithOperands([]string{"first_input"}, nil, next).ServeHTTP(recorder, request)
+
+			if recorder.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d (body %q)", recorder.Code, tt.wantStatus, recorder.Body.String())
 			}
 		})
 	}
+}
+
+func TestWithOperandsOptionalField(t *testing.T) {
+	tests := []struct {
+		name      string
+		body      string
+		wantError string
+	}{
+		{"absent optional operand", `{"first_input":9}`, ""},
+		{"null optional operand", `{"first_input":9,"second_input":null}`, ""},
+		{"present optional operand", `{"first_input":9,"second_input":2}`, ""},
+		{"zero optional operand", `{"first_input":9,"second_input":0}`, ""},
+		{"optional operand with nine digits", `{"first_input":9,"second_input":-123456789}`, ""},
+		{"optional operand with ten digits", `{"first_input":9,"second_input":1234567890}`, "second_input must have at most 9 digits"},
+		{"optional operand with ten decimals", `{"first_input":9,"second_input":0.123456789}`, "second_input must have at most 9 digits"},
+		{"string optional operand", `{"first_input":9,"second_input":"2"}`, "second_input must be a number"},
+		{"boolean optional operand", `{"first_input":9,"second_input":false}`, "second_input must be a number"},
+		{"required operand is checked first", `{"second_input":1234567890}`, "first_input is required"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wasForwarded := false
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { wasForwarded = true })
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+
+			middleware.WithOperands([]string{"first_input"}, []string{"second_input"}, next).ServeHTTP(recorder, request)
+
+			if tt.wantError == "" {
+				if !wasForwarded {
+					t.Fatalf("request was rejected: %q", recorder.Body.String())
+				}
+
+				return
+			}
+
+			wantBody := `{"error":"` + tt.wantError + `"}`
+			if gotBody := strings.TrimSpace(recorder.Body.String()); gotBody != wantBody || wasForwarded {
+				t.Errorf("body = %q, forwarded = %t, want %q rejected", gotBody, wasForwarded, wantBody)
+			}
+		})
+	}
+}
+
+func TestWithOperandsWithoutNames(t *testing.T) {
+	wasForwarded := false
+	next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { wasForwarded = true })
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
+
+	middleware.WithOperands(nil, nil, next).ServeHTTP(recorder, request)
+
+	if !wasForwarded {
+		t.Error("with no operands to validate, a JSON object must be forwarded")
+	}
+}
+
+func TestWithOperandsUnreadableBody(t *testing.T) {
+	next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("an unreadable request must not reach the next handler")
+	})
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/", failingReader{})
+
+	middleware.WithOperands([]string{"first_input"}, nil, next).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+
+	wantBody := `{"error":"unreadable request body"}`
+	if gotBody := strings.TrimSpace(recorder.Body.String()); gotBody != wantBody {
+		t.Errorf("body = %q, want %q", gotBody, wantBody)
+	}
+}
+
+type failingReader struct{}
+
+func (failingReader) Read([]byte) (int, error) {
+	return 0, errors.New("connection reset")
 }

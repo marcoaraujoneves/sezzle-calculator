@@ -1,15 +1,6 @@
 package handlers
 
-import (
-	"encoding/json"
-	"errors"
-	"net/http"
-)
-
-var (
-	ErrDivisionByZero   = errors.New("division by zero")
-	ErrUnknownOperation = errors.New("unknown operation")
-)
+import "net/http"
 
 type basicRequest struct {
 	Operation   string  `json:"operation"`
@@ -17,37 +8,34 @@ type basicRequest struct {
 	SecondInput float64 `json:"second_input"`
 }
 
-func Calculate(operation string, first, second float64) (float64, error) {
+// BasicCalculations serves the four arithmetic operations on two operands.
+var BasicCalculations http.HandlerFunc = calculationHandler(func(request basicRequest) (float64, error) {
+	return CalculateBasic(request.Operation, request.FirstInput, request.SecondInput)
+})
+
+func CalculateBasic(operation string, firstOperand, secondOperand float64) (float64, error) {
 	switch operation {
-	case "addition":
-		return first + second, nil
-	case "subtraction":
-		return first - second, nil
-	case "multiplication":
-		return first * second, nil
-	case "division":
-		if second == 0 {
-			return 0, ErrDivisionByZero
-		}
-		return first / second, nil
+	case OperationAddition:
+		return ensureRepresentable(firstOperand + secondOperand)
+
+	case OperationSubtraction:
+		return ensureRepresentable(firstOperand - secondOperand)
+
+	case OperationMultiplication:
+		return ensureRepresentable(firstOperand * secondOperand)
+
+	case OperationDivision:
+		return divide(firstOperand, secondOperand)
+
 	default:
 		return 0, ErrUnknownOperation
 	}
 }
 
-func BasicCalculations(w http.ResponseWriter, r *http.Request) {
-	var req basicRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
+func divide(dividend, divisor float64) (float64, error) {
+	if divisor == 0 {
+		return 0, ErrDivisionByZero
 	}
 
-	result, err := Calculate(req.Operation, req.FirstInput, req.SecondInput)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]float64{"result": result})
+	return ensureRepresentable(dividend / divisor)
 }

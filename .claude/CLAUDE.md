@@ -11,7 +11,11 @@ Calculator full-stack assessment (see `ASSESSMENT.md`). `backend/` is a Go calcu
 ## Backend (`backend/`)
 
 - Go, standard library first; idiomatic and small.
-- Table-driven tests (`go test ./...`).
+- Table-driven tests (`go test ./...`); run `gofmt -l .`, `go vet ./...` and `go test -race ./...` after each batch of writes.
+- Name for meaning (`firstOperand`, `isIntegerExponent`, `validationErr`), never `n`, `res`, `req`-style abbreviations; no magic strings (operations, fields, paths are constants).
+- Always braces and a new line for `if`; assign a multi-clause condition to a named boolean; blank lines between guards, derivations and the return.
+- One shared helper per repeated concern (`internal/httpjson` writes every response, `calculationHandler` decodes and answers every calculation).
+- Operands are `float64` and the digit limit does not bound magnitude (`1e308` has 4 digits), so every operation that can overflow goes through `ensureRepresentable`. Tests must cover the 9-digit extremes, `math.MaxFloat64`, `math.SmallestNonzeroFloat64`, overflow and underflow.
 
 ## Frontend (`frontend/`)
 
